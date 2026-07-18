@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem Rangka Manusia — Simulator Anatomi Interaktif</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0a0d13;
+  --panel:#12181f;
+  --panel-2:#1a2129;
+  --line:rgba(232,236,242,0.09);
+  --line-strong:rgba(232,236,242,0.18);
+  --phosphor:#7dd8ee;
+  --phosphor-bright:#a9e8f5;
+  --phosphor-dim:rgba(125,216,238,0.13);
+  --amber:#eda85f;
+  --amber-dim:rgba(237,168,95,0.14);
+  --bone:#eee3ca;
+  --bone-dim:#a89878;
+  --bone-shadow:#5f5540;
+  --ink:#e8ecf2;
+  --ink-dim:#8b96a8;
+  --ink-faint:#4c5566;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'Source Serif 4',serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --radius:18px;
+  --radius-sm:10px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--void);
+  color:var(--ink);
+  font-family:var(--font-body);
+  line-height:1.65;
+  overflow-x:hidden;
+  position:relative;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(125,216,238,0.07), transparent 38%),
+    radial-gradient(circle at 88% 55%, rgba(237,168,95,0.05), transparent 42%),
+    repeating-linear-gradient(0deg, rgba(232,236,242,0.014) 0px, transparent 1px, transparent 46px),
+    repeating-linear-gradient(90deg, rgba(232,236,242,0.014) 0px, transparent 1px, transparent 46px);
+  pointer-events:none;
+  z-index:0;
+}
+.container{max-width:1440px;margin:0 auto;padding:0 40px;position:relative;z-index:1;}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:600;letter-spacing:-0.01em;color:var(--ink);}
+a{color:inherit;text-decoration:none;}
+img,svg{display:block;max-width:100%;}
+button{font-family:inherit;cursor:pointer;}
+::selection{background:var(--phosphor-dim);color:var(--phosphor-bright);}
+::-webkit-scrollbar{width:10px;}
+::-webkit-scrollbar-track{background:var(--void);}
+::-webkit-scrollbar-thumb{background:var(--panel-2);border-radius:10px;}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-faint);}
+
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--phosphor);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+.eyebrow::before{content:'';width:22px;height:1px;background:var(--phosphor);flex-shrink:0;}
+
+.section{position:relative;padding:128px 0;z-index:1;}
+.section-tight{padding:100px 0;}
+.section-head{max-width:700px;margin-bottom:68px;}
+.section-head h2{font-size:clamp(28px,4vw,42px);margin-bottom:16px;}
+.section-head p{color:var(--ink-dim);font-size:17px;line-height:1.7;}
+.section-head.center{margin-left:auto;margin-right:auto;text-align:center;}
+.section-head.center .eyebrow{justify-content:center;}
+.section-head.center .eyebrow::before{display:none;}
+
+.vert-divider{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:0;}
+.vert-divider span{width:7px;height:7px;border-radius:50%;background:var(--line-strong);}
+.vert-divider span:nth-child(3n+2){background:var(--phosphor);opacity:0.55;}
+
+/* ---------- NAVBAR ---------- */
+.navbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(10,13,19,0.72);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+  transition:background .3s ease;
+}
+.navbar .container{display:flex;align-items:center;justify-content:space-between;padding-top:18px;padding-bottom:18px;gap:20px;}
+.nav-logo{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--ink);letter-spacing:0.02em;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.nav-logo .dot{width:8px;height:8px;border-radius:50%;background:var(--phosphor);box-shadow:0 0 8px var(--phosphor);}
+.nav-logo span{color:var(--phosphor);}
+.nav-links{
+  display:flex;gap:4px;align-items:center;
+  overflow:hidden;white-space:nowrap;
+  max-width:640px;opacity:1;
+  transition:max-width .4s cubic-bezier(.65,0,.35,1), opacity .3s ease, margin .4s ease;
+}
+.navbar.nav-collapsed .nav-links{max-width:0;opacity:0;margin-left:-4px;}
+.nav-links a{
+  font-family:var(--font-mono);
+  font-size:12.5px;
+  letter-spacing:0.04em;
+  color:var(--ink-dim);
+  padding:8px 13px;
+  border-radius:20px;
+  transition:all .2s ease;
+  flex-shrink:0;
+}
+.nav-links a:hover{color:var(--ink);background:var(--panel-2);}
+.nav-toggle{
+  display:flex;flex-direction:column;justify-content:center;gap:4px;
+  background:var(--panel-2);border:1px solid var(--line-strong);border-radius:10px;
+  width:38px;height:38px;padding:0;flex-shrink:0;cursor:pointer;
+  transition:border-color .2s ease, background .2s ease;
+}
+.nav-toggle:hover{border-color:var(--phosphor);}
+.nav-toggle span{width:16px;height:1.5px;background:var(--ink);border-radius:2px;margin:0 auto;transition:transform .3s ease, opacity .3s ease, width .3s ease;}
+.navbar.nav-collapsed .nav-toggle{background:var(--phosphor-dim);border-color:var(--phosphor);}
+.navbar.nav-collapsed .nav-toggle span:nth-child(1){transform:translateY(5.5px) rotate(45deg);}
+.navbar.nav-collapsed .nav-toggle span:nth-child(2){opacity:0;}
+.navbar.nav-collapsed .nav-toggle span:nth-child(3){transform:translateY(-5.5px) rotate(-45deg);}
+.nav-mobile{display:none;}
+
+/* ---------- HERO ---------- */
+.hero{
+  position:relative;
+  padding:168px 0 100px;
+  overflow:hidden;
+}
+.hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;}
+.hero h1{font-size:clamp(38px,5.6vw,68px);line-height:1.04;margin-bottom:22px;}
+.hero h1 em{font-style:normal;color:var(--phosphor);}
+.hero-sub{font-size:18px;color:var(--ink-dim);max-width:520px;margin-bottom:36px;line-height:1.75;}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:56px;}
+.btn{
+  font-family:var(--font-mono);
+  font-size:13px;
+  letter-spacing:0.04em;
+  padding:14px 26px;
+  border-radius:30px;
+  border:1px solid var(--line-strong);
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  transition:all .2s ease;
+}
+.btn-primary{background:var(--phosphor);color:#08181d;border-color:var(--phosphor);font-weight:600;}
+.btn-primary:hover{background:var(--phosphor-bright);transform:translateY(-2px);box-shadow:0 8px 26px rgba(125,216,238,0.25);}
+.btn-ghost{color:var(--ink);background:transparent;}
+.btn-ghost:hover{border-color:var(--ink-dim);background:var(--panel-2);}
+
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;max-width:560px;}
+.stat-chip{background:var(--void);padding:16px 14px;}
+.stat-chip b{font-family:var(--font-display);font-size:26px;display:block;color:var(--phosphor);line-height:1;}
+.stat-chip span{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-top:8px;}
+
+.hero-viewport{
+  position:relative;
+  aspect-ratio:3/4;
+  background:radial-gradient(ellipse at 50% 30%, rgba(125,216,238,0.09), transparent 65%), var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.hero-viewport .corner{position:absolute;width:18px;height:18px;border:2px solid var(--phosphor);opacity:0.5;}
+.hero-viewport .corner.tl{top:14px;left:14px;border-right:none;border-bottom:none;}
+.hero-viewport .corner.tr{top:14px;right:14px;border-left:none;border-bottom:none;}
+.hero-viewport .corner.bl{bottom:14px;left:14px;border-right:none;border-top:none;}
+.hero-viewport .corner.br{bottom:14px;right:14px;border-left:none;border-top:none;}
+.hero-viewport .readout{position:absolute;font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;color:var(--ink-faint);}
+.hero-viewport .readout.top{top:16px;left:42px;color:var(--phosphor);opacity:0.7;}
+.hero-viewport .readout.bottom-l{bottom:16px;left:42px;}
+.hero-viewport .readout.bottom-r{bottom:16px;right:42px;text-align:right;}
+.hero-skel{width:100%;height:100%;padding:20px 54px;}
+.scanline{
+  position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg, transparent, var(--phosphor-bright), transparent);
+  box-shadow:0 0 16px 2px var(--phosphor);
+  animation:scan 4.5s ease-in-out infinite;
+  opacity:0.85;
+}
+@keyframes scan{
+  0%{top:8%;opacity:0;}
+  10%{opacity:.9;}
+  50%{top:88%;opacity:.9;}
+  60%{opacity:0;}
+  100%{top:8%;opacity:0;}
+}
+.pulse-dot{animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease, transform .7s ease;}
+.reveal.visible{opacity:1;transform:none;}
+
+@media(prefers-reduced-motion:reduce){
+  .scanline,.pulse-dot{animation:none;}
+  .reveal{transition:none;opacity:1;transform:none;}
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <div class="nav-logo"><span class="dot"></span>OS<span>·206</span></div>
+    <div class="nav-links" id="navLinks">
+      <a href="#beranda">Beranda</a>
+      <a href="#fungsi">Fungsi</a>
+      <a href="#simulator">Simulator</a>
+      <a href="#struktur">Struktur</a>
+      <a href="#rangka">Rangka</a>
+      <a href="#sendi">Sendi</a>
+      <a href="#kelainan">Kelainan</a>
+      <a href="#kesehatan">Kesehatan</a>
+      <a href="#kuis">Kuis</a>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Buka menu"><span></span><span></span><span></span></button>
+  </div>
+  <div class="nav-mobile" id="navMobile"></div>
+</nav>
+
+<section class="hero" id="beranda">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Simulator Anatomi Digital</div>
+        <h1>Sistem Rangka<br><em>Manusia</em></h1>
+        <p class="hero-sub">Jelajahi 206 tulang penyusun tubuh manusia lewat simulator interaktif. Sentuh tiap bagian rangka untuk membaca data anatomisnya secara langsung — lengkap dengan fungsi, klasifikasi, dan fakta menariknya.</p>
+        <div class="hero-cta">
+          <a href="#simulator" class="btn btn-primary">Mulai Simulasi ↓</a>
+          <a href="#struktur" class="btn btn-ghost">Pelajari Materi</a>
+        </div>
+        <div class="stat-row">
+          <div class="stat-chip"><b data-count="206">0</b><span>Tulang Dewasa</span></div>
+          <div class="stat-chip"><b data-count="80">0</b><span>Rangka Aksial</span></div>
+          <div class="stat-chip"><b data-count="126">0</b><span>Rangka Apendikular</span></div>
+          <div class="stat-chip"><b data-count="5">0</b><span>Kategori Bentuk</span></div>
+          <div class="stat-chip"><b data-count="6">0</b><span>Fungsi Utama</span></div>
+          <div class="stat-chip"><b data-count="270" data-prefix="±">±0</b><span>Tulang Saat Lahir</span></div>
+        </div>
+      </div>
+      <div class="hero-viewport">
+        <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+        <div class="readout top">● LIVE&nbsp;&nbsp;SCAN.HS-01</div>
+        <div class="readout bottom-l">SAGITAL /// 0°</div>
+        <div class="readout bottom-r">HOMO SAPIENS</div>
+        <div class="scanline"></div>
+        <svg class="hero-skel" viewBox="0 0 400 900" xmlns="http://www.w3.org/2000/svg">
+<g opacity="0.95">
+<path class="bp" d="M200,20 C 173,20 167,36 167,64 C 167,91 172,105 180,116 Q 200,123 220,116 C 228,105 233,91 233,64 C 233,36 227,20 200,20 Z"/><ellipse class="bp-hole" cx="186.1" cy="70.0" rx="7.9" ry="9.0"/><ellipse class="bp-hole" cx="213.9" cy="70.0" rx="7.9" ry="9.0"/><path class="bp-hole" d="M194,78 L206,78 L203,95 Q200,98 197,95 Z"/><path class="bp-line2" d="M183,59 Q193,55 200,59 M200,59 Q207,55 217,59"/><path class="bp-line2" d="M200,22 L200,57"/><path class="bp-line2" d="M177,42 Q200,30 223,42"/><path class="bp-line2" d="M180,72 Q170,76 170,94"/><path class="bp-line2" d="M220,72 Q230,76 230,94"/><path class="bp-line2" d="M171,50 Q169,54 174,64"/><path class="bp-line2" d="M229,50 Q231,54 226,64"/><line class="bp-line" x1="183.5" y1="109.0" x2="216.5" y2="109.0" stroke-width="1.6"/><line class="bp-line" x1="185.2" y1="106.0" x2="185.2" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="190.1" y1="106.0" x2="190.1" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="195.1" y1="106.0" x2="195.1" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="200.0" y1="106.0" x2="200.0" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="205.0" y1="106.0" x2="205.0" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="209.9" y1="106.0" x2="209.9" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="214.9" y1="106.0" x2="214.9" y2="112.0" stroke-width="0.9"/>
+<path class="bp" d="M180,114 Q182,127 190,133 Q200,137 210,133 Q218,127 220,114 Q200,122 180,114 Z"/>
+<ellipse class="bp" cx="200.0" cy="128.0" rx="6.2" ry="4.4"/><ellipse class="bp" cx="200.0" cy="129.5" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="125.1" x2="200.0" y2="122.0" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="131.0" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="126.6" x2="200.0" y2="123.5" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="132.5" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="128.1" x2="200.0" y2="125.0" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="134.0" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="129.6" x2="200.0" y2="126.5" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="135.5" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="131.1" x2="200.0" y2="128.0" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="137.0" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="132.6" x2="200.0" y2="129.5" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="157.0" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,160 L200,168 L203,160 Z"/><ellipse class="bp" cx="200.0" cy="171.5" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,175 L200,182 L203,175 Z"/><ellipse class="bp" cx="200.0" cy="185.9" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,189 L200,197 L203,189 Z"/><ellipse class="bp" cx="200.0" cy="200.4" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,204 L200,211 L203,204 Z"/><ellipse class="bp" cx="200.0" cy="214.8" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,218 L200,226 L203,218 Z"/><ellipse class="bp" cx="200.0" cy="229.3" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,233 L200,240 L203,233 Z"/><ellipse class="bp" cx="200.0" cy="243.7" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,247 L200,255 L203,247 Z"/><ellipse class="bp" cx="200.0" cy="258.2" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,262 L200,269 L203,262 Z"/><ellipse class="bp" cx="200.0" cy="272.6" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,276 L200,284 L203,276 Z"/><ellipse class="bp" cx="200.0" cy="287.1" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,291 L200,298 L203,291 Z"/><ellipse class="bp" cx="200.0" cy="301.5" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,305 L200,313 L203,305 Z"/><ellipse class="bp" cx="200.0" cy="316.0" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,320 L200,327 L203,320 Z"/><ellipse class="bp" cx="200.0" cy="326.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,326 L185,324 M209,326 L215,324"/><line class="bp-line2" x1="200.0" y1="332.8" x2="200.0" y2="337.0" stroke-width="2.0"/><ellipse class="bp" cx="200.0" cy="332.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,332 L185,330 M209,332 L215,330"/><line class="bp-line2" x1="200.0" y1="338.8" x2="200.0" y2="343.0" stroke-width="2.0"/><ellipse class="bp" cx="200.0" cy="338.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,338 L185,336 M209,338 L215,336"/><line class="bp-line2" x1="200.0" y1="344.8" x2="200.0" y2="349.0" stroke-width="2.0"/><ellipse class="bp" cx="200.0" cy="344.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,344 L185,342 M209,344 L215,342"/><line class="bp-line2" x1="200.0" y1="350.8" x2="200.0" y2="355.0" stroke-width="2.0"/><ellipse class="bp" cx="200.0" cy="350.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,350 L185,348 M209,350 L215,348"/><line class="bp-line2" x1="200.0" y1="356.8" x2="200.0" y2="361.0" stroke-width="2.0"/><path class="bp vert-sacral" d="M184,354 L216,354 L210,392 Q200,404 190,392 Z"/><ellipse class="bp-hole" cx="194.0" cy="364.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="206.0" cy="364.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="194.0" cy="375.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="206.0" cy="375.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="194.0" cy="386.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="206.0" cy="386.0" rx="2.2" ry="2.8"/><ellipse class="bp vert-sacral" cx="200.0" cy="412.0" rx="3.6" ry="6.0"/>
+<path class="bp" d="M191,145 L209,145 L210,159 L207,276 Q203,294 200,296 Q197,294 193,276 L190,159 Z"/><path class="bp-line2" d="M191,159 L209,159"/>
+<path class="bp" d="M191.7,150.5 L188.5,150.2 L185.2,150.4 L181.9,150.9 L178.5,151.7 L175.1,153.0 L171.5,154.6 L167.9,156.7 L164.3,159.1 L160.5,161.9 L156.7,165.1 L153.1,160.9 L157.3,157.7 L161.5,154.9 L165.6,152.5 L169.6,150.6 L173.6,149.0 L177.5,147.9 L181.3,147.1 L185.0,146.8 L188.7,147.0 L192.3,147.5 Z"/><path class="bp" d="M191.8,168.4 L186.9,168.2 L181.9,168.5 L176.9,169.1 L171.9,170.2 L166.9,171.8 L161.9,173.8 L156.8,176.3 L151.7,179.2 L146.5,182.5 L141.3,186.3 L137.4,181.0 L143.0,177.2 L148.7,173.9 L154.3,171.1 L159.8,168.8 L165.4,166.9 L170.8,165.6 L176.3,164.7 L181.6,164.2 L187.0,164.3 L192.2,164.8 Z"/><path class="bp" d="M191.8,186.3 L185.6,186.1 L179.5,186.5 L173.3,187.3 L167.1,188.6 L161.0,190.5 L154.8,192.8 L148.6,195.7 L142.4,199.0 L136.2,202.9 L130.0,207.3 L125.7,201.2 L132.4,196.9 L139.2,193.1 L145.9,189.9 L152.6,187.2 L159.3,185.0 L165.9,183.4 L172.5,182.3 L179.1,181.7 L185.7,181.7 L192.2,182.2 Z"/><path class="bp" d="M191.8,204.0 L184.8,203.9 L177.9,204.3 L171.0,205.3 L164.1,206.9 L157.2,209.0 L150.3,211.7 L143.4,214.9 L136.5,218.7 L129.6,223.1 L122.8,228.0 L118.2,221.7 L125.6,216.8 L133.0,212.5 L140.5,208.8 L147.9,205.7 L155.3,203.2 L162.7,201.3 L170.1,200.0 L177.5,199.3 L184.9,199.2 L192.2,199.7 Z"/><path class="bp" d="M191.8,221.6 L184.6,221.5 L177.4,222.1 L170.2,223.2 L163.1,225.0 L156.0,227.4 L148.8,230.3 L141.7,234.0 L134.6,238.2 L127.5,243.1 L120.4,248.6 L115.6,242.4 L123.2,237.0 L130.9,232.2 L138.6,228.0 L146.3,224.5 L153.9,221.6 L161.6,219.5 L169.3,217.9 L176.9,217.1 L184.6,216.9 L192.2,217.4 Z"/><path class="bp" d="M191.8,239.2 L184.9,239.1 L178.0,239.7 L171.1,241.0 L164.2,242.9 L157.3,245.5 L150.5,248.8 L143.6,252.8 L136.7,257.5 L129.8,262.8 L122.9,268.9 L118.0,263.4 L125.4,257.3 L132.8,252.0 L140.3,247.3 L147.7,243.4 L155.2,240.2 L162.6,237.7 L170.0,236.0 L177.4,235.0 L184.8,234.7 L192.2,235.1 Z"/><path class="bp" d="M191.8,256.6 L185.5,256.5 L179.2,257.2 L173.0,258.6 L166.7,260.7 L160.4,263.5 L154.1,267.1 L147.7,271.5 L141.4,276.6 L135.0,282.4 L128.6,289.0 L123.8,284.5 L130.7,277.8 L137.5,272.0 L144.4,266.8 L151.3,262.5 L158.1,259.0 L165.0,256.2 L171.8,254.2 L178.6,253.0 L185.4,252.6 L192.2,252.9 Z"/><path class="bp" d="M191.8,273.9 L186.6,273.8 L181.4,274.6 L176.2,276.1 L170.9,278.4 L165.6,281.5 L160.2,285.4 L154.8,290.1 L149.3,295.6 L143.8,301.9 L138.3,309.1 L133.8,305.7 L139.7,298.5 L145.6,292.1 L151.5,286.5 L157.4,281.7 L163.3,277.8 L169.1,274.7 L174.9,272.4 L180.7,271.1 L186.5,270.5 L192.2,270.8 Z"/><path class="bp" d="M191.8,291.3 L188.1,291.2 L184.3,292.0 L180.5,293.6 L176.5,296.0 L172.5,299.3 L168.4,303.5 L164.2,308.6 L159.9,314.6 L155.6,321.4 L151.2,329.1 L147.2,326.9 L151.8,319.1 L156.5,312.2 L161.1,306.1 L165.6,301.0 L170.1,296.7 L174.6,293.3 L179.1,290.7 L183.5,289.1 L187.9,288.5 L192.2,288.7 Z"/><path class="cart-line" d="M191,200 Q186,205 194,211"/><path class="cart-line" d="M191,218 Q186,222 194,228"/><path class="cart-line" d="M191,235 Q186,240 194,246"/><path class="cart-line" d="M191,253 Q186,258 194,264"/><path class="cart-line" d="M191,270 Q186,275 194,281"/><path class="cart-line" d="M191,288 Q186,293 194,299"/>
+<path class="bp" d="M208.3,150.5 L211.5,150.2 L214.8,150.4 L218.1,150.9 L221.5,151.7 L224.9,153.0 L228.5,154.6 L232.1,156.7 L235.7,159.1 L239.5,161.9 L243.3,165.1 L246.9,160.9 L242.7,157.7 L238.5,154.9 L234.4,152.5 L230.4,150.6 L226.4,149.0 L222.5,147.9 L218.7,147.1 L215.0,146.8 L211.3,147.0 L207.7,147.5 Z"/><path class="bp" d="M208.2,168.4 L213.1,168.2 L218.1,168.5 L223.1,169.1 L228.1,170.2 L233.1,171.8 L238.1,173.8 L243.2,176.3 L248.3,179.2 L253.5,182.5 L258.7,186.3 L262.6,181.0 L257.0,177.2 L251.3,173.9 L245.7,171.1 L240.2,168.8 L234.6,166.9 L229.2,165.6 L223.7,164.7 L218.4,164.2 L213.0,164.3 L207.8,164.8 Z"/><path class="bp" d="M208.2,186.3 L214.4,186.1 L220.5,186.5 L226.7,187.3 L232.9,188.6 L239.0,190.5 L245.2,192.8 L251.4,195.7 L257.6,199.0 L263.8,202.9 L270.0,207.3 L274.3,201.2 L267.6,196.9 L260.8,193.1 L254.1,189.9 L247.4,187.2 L240.7,185.0 L234.1,183.4 L227.5,182.3 L220.9,181.7 L214.3,181.7 L207.8,182.2 Z"/><path class="bp" d="M208.2,204.0 L215.2,203.9 L222.1,204.3 L229.0,205.3 L235.9,206.9 L242.8,209.0 L249.7,211.7 L256.6,214.9 L263.5,218.7 L270.4,223.1 L277.2,228.0 L281.8,221.7 L274.4,216.8 L267.0,212.5 L259.5,208.8 L252.1,205.7 L244.7,203.2 L237.3,201.3 L229.9,200.0 L222.5,199.3 L215.1,199.2 L207.8,199.7 Z"/><path class="bp" d="M208.2,221.6 L215.4,221.5 L222.6,222.1 L229.8,223.2 L236.9,225.0 L244.0,227.4 L251.2,230.3 L258.3,234.0 L265.4,238.2 L272.5,243.1 L279.6,248.6 L284.4,242.4 L276.8,237.0 L269.1,232.2 L261.4,228.0 L253.7,224.5 L246.1,221.6 L238.4,219.5 L230.7,217.9 L223.1,217.1 L215.4,216.9 L207.8,217.4 Z"/><path class="bp" d="M208.2,239.2 L215.1,239.1 L222.0,239.7 L228.9,241.0 L235.8,242.9 L242.7,245.5 L249.5,248.8 L256.4,252.8 L263.3,257.5 L270.2,262.8 L277.1,268.9 L282.0,263.4 L274.6,257.3 L267.2,252.0 L259.7,247.3 L252.3,243.4 L244.8,240.2 L237.4,237.7 L230.0,236.0 L222.6,235.0 L215.2,234.7 L207.8,235.1 Z"/><path class="bp" d="M208.2,256.6 L214.5,256.5 L220.8,257.2 L227.0,258.6 L233.3,260.7 L239.6,263.5 L245.9,267.1 L252.3,271.5 L258.6,276.6 L265.0,282.4 L271.4,289.0 L276.2,284.5 L269.3,277.8 L262.5,272.0 L255.6,266.8 L248.7,262.5 L241.9,259.0 L235.0,256.2 L228.2,254.2 L221.4,253.0 L214.6,252.6 L207.8,252.9 Z"/><path class="bp" d="M208.2,273.9 L213.4,273.8 L218.6,274.6 L223.8,276.1 L229.1,278.4 L234.4,281.5 L239.8,285.4 L245.2,290.1 L250.7,295.6 L256.2,301.9 L261.7,309.1 L266.2,305.7 L260.3,298.5 L254.4,292.1 L248.5,286.5 L242.6,281.7 L236.7,277.8 L230.9,274.7 L225.1,272.4 L219.3,271.1 L213.5,270.5 L207.8,270.8 Z"/><path class="bp" d="M208.2,291.3 L211.9,291.2 L215.7,292.0 L219.5,293.6 L223.5,296.0 L227.5,299.3 L231.6,303.5 L235.8,308.6 L240.1,314.6 L244.4,321.4 L248.8,329.1 L252.8,326.9 L248.2,319.1 L243.5,312.2 L238.9,306.1 L234.4,301.0 L229.9,296.7 L225.4,293.3 L220.9,290.7 L216.5,289.1 L212.1,288.5 L207.8,288.7 Z"/><path class="cart-line" d="M209,200 Q214,205 206,211"/><path class="cart-line" d="M209,218 Q214,222 206,228"/><path class="cart-line" d="M209,235 Q214,240 206,246"/><path class="cart-line" d="M209,253 Q214,258 206,264"/><path class="cart-line" d="M209,270 Q214,275 206,281"/><path class="cart-line" d="M209,288 Q214,293 206,299"/>
+<path class="bp" d="M161,320 C 140,322 129,336 135,360 C 140,378 156,388 156,386 C 160,402 166,406 179,414 Q 200,422 221,414 C 234,406 240,402 244,386 C 244,388 260,378 265,360 C 271,336 260,322 239,320 Q 200,342 161,320 Z"/><circle class="bp-line2" cx="162.0" cy="386.0" r="7.0"/><circle class="bp-line2" cx="238.0" cy="386.0" r="7.0"/><circle class="bp-hole" cx="162.0" cy="386.0" r="2.4"/><circle class="bp-hole" cx="238.0" cy="386.0" r="2.4"/><path class="bp-line2" d="M162,379 Q161,358 164,334 M157,390 Q151,412 177,410 M166,392 Q173,415 181,428"/><path class="bp-line2" d="M238,379 Q239,358 236,334 M243,390 Q249,412 223,410 M234,392 Q227,415 219,428"/><ellipse class="bp" cx="179.1" cy="432.0" rx="6.0" ry="4.0"/><ellipse class="bp" cx="220.9" cy="432.0" rx="6.0" ry="4.0"/>
+<path class="bp-line3" d="M189,143 C153,137 125,139 106,135"/>
+<path class="bp-line3" d="M211,143 C247,137 275,139 294,135"/>
+<path class="bp" d="M110,131 L140,142 L144,187 Q118,197 106,181 Z"/>
+<path class="bp" d="M290,131 L260,142 L256,187 Q282,197 294,181 Z"/>
+<line class="bp-line" x1="106.0" y1="135.0" x2="92.0" y2="295.0" stroke-width="15.0"/><circle class="bp" cx="106.0" cy="135.0" r="12.5"/><circle class="bp" cx="85.0" cy="294.4" r="8.6"/><circle class="bp" cx="99.0" cy="295.6" r="8.6"/>
+<line class="bp-line" x1="294.0" y1="135.0" x2="308.0" y2="295.0" stroke-width="15.0"/><circle class="bp" cx="294.0" cy="135.0" r="12.5"/><circle class="bp" cx="301.0" cy="295.6" r="8.6"/><circle class="bp" cx="315.0" cy="294.4" r="8.6"/>
+<line class="bp-line" x1="89.0" y1="299.0" x2="80.0" y2="455.0" stroke-width="7.4"/><circle class="bp" cx="89.0" cy="299.0" r="8.0"/><circle class="bp" cx="80.0" cy="455.0" r="6.0"/>
+<line class="bp-line" x1="97.0" y1="301.0" x2="89.0" y2="455.0" stroke-width="6.2"/><circle class="bp" cx="97.0" cy="301.0" r="5.4"/><circle class="bp" cx="89.0" cy="455.0" r="6.0"/>
+<line class="bp-line" x1="311.0" y1="299.0" x2="320.0" y2="455.0" stroke-width="7.4"/><circle class="bp" cx="311.0" cy="299.0" r="8.0"/><circle class="bp" cx="320.0" cy="455.0" r="6.0"/>
+<line class="bp-line" x1="303.0" y1="301.0" x2="311.0" y2="455.0" stroke-width="6.2"/><circle class="bp" cx="303.0" cy="301.0" r="5.4"/><circle class="bp" cx="311.0" cy="455.0" r="6.0"/>
+<circle class="bp" cx="84.0" cy="457.0" r="4.2"/><circle class="bp" cx="77.0" cy="456.0" r="4.0"/><circle class="bp" cx="86.0" cy="462.0" r="3.7"/><circle class="bp" cx="75.0" cy="463.0" r="3.8"/><circle class="bp" cx="81.0" cy="453.0" r="3.4"/><circle class="bp" cx="82.0" cy="460.0" r="3.3"/><circle class="bp" cx="77.0" cy="459.0" r="3.3"/><circle class="bp" cx="80.0" cy="464.0" r="3.5"/><line class="bp-line" x1="84.5" y1="463.0" x2="95.0" y2="469.0" stroke-width="4.8"/><circle class="bp" cx="95.0" cy="469.0" r="2.6"/><line class="bp-line" x1="95.0" y1="469.0" x2="96.5" y2="490.0" stroke-width="3.3"/><circle class="bp" cx="96.5" cy="490.0" r="1.6"/><line class="bp-line" x1="96.5" y1="490.0" x2="98.0" y2="503.0" stroke-width="2.4"/><circle class="bp" cx="98.0" cy="503.0" r="1.2"/><line class="bp-line" x1="98.0" y1="503.0" x2="99.2" y2="513.0" stroke-width="1.7"/><circle class="bp" cx="99.2" cy="513.0" r="1.0"/><line class="bp-line" x1="81.7" y1="463.0" x2="85.5" y2="469.0" stroke-width="5.1"/><circle class="bp" cx="85.5" cy="469.0" r="2.8"/><line class="bp-line" x1="85.5" y1="469.0" x2="86.0" y2="494.0" stroke-width="3.6"/><circle class="bp" cx="86.0" cy="494.0" r="1.8"/><line class="bp-line" x1="86.0" y1="494.0" x2="86.6" y2="510.0" stroke-width="2.5"/><circle class="bp" cx="86.6" cy="510.0" r="1.2"/><line class="bp-line" x1="86.6" y1="510.0" x2="87.0" y2="521.0" stroke-width="1.8"/><circle class="bp" cx="87.0" cy="521.0" r="1.0"/><line class="bp-line" x1="78.7" y1="463.0" x2="75.5" y2="469.0" stroke-width="4.9"/><circle class="bp" cx="75.5" cy="469.0" r="2.7"/><line class="bp-line" x1="75.5" y1="469.0" x2="75.0" y2="493.0" stroke-width="3.4"/><circle class="bp" cx="75.0" cy="493.0" r="1.7"/><line class="bp-line" x1="75.0" y1="493.0" x2="74.6" y2="508.0" stroke-width="2.4"/><circle class="bp" cx="74.6" cy="508.0" r="1.2"/><line class="bp-line" x1="74.6" y1="508.0" x2="74.2" y2="518.0" stroke-width="1.7"/><circle class="bp" cx="74.2" cy="518.0" r="1.0"/><line class="bp-line" x1="75.8" y1="463.0" x2="66.0" y2="469.0" stroke-width="4.2"/><circle class="bp" cx="66.0" cy="469.0" r="2.3"/><line class="bp-line" x1="66.0" y1="469.0" x2="64.6" y2="488.0" stroke-width="3.0"/><circle class="bp" cx="64.6" cy="488.0" r="1.5"/><line class="bp-line" x1="64.6" y1="488.0" x2="63.2" y2="500.0" stroke-width="2.1"/><circle class="bp" cx="63.2" cy="500.0" r="1.0"/><line class="bp-line" x1="63.2" y1="500.0" x2="62.1" y2="509.0" stroke-width="1.5"/><circle class="bp" cx="62.1" cy="509.0" r="0.8"/><line class="bp-line" x1="84.0" y1="461.0" x2="97.0" y2="471.0" stroke-width="5.2"/><circle class="bp" cx="97.0" cy="471.0" r="3.1"/><line class="bp-line" x1="97.0" y1="471.0" x2="107.0" y2="482.0" stroke-width="4.2"/><circle class="bp" cx="107.0" cy="482.0" r="2.6"/><line class="bp-line" x1="107.0" y1="482.0" x2="114.0" y2="491.0" stroke-width="3.3"/><circle class="bp" cx="114.0" cy="491.0" r="2.0"/>
+<circle class="bp" cx="316.0" cy="457.0" r="4.2"/><circle class="bp" cx="323.0" cy="456.0" r="4.0"/><circle class="bp" cx="314.0" cy="462.0" r="3.7"/><circle class="bp" cx="325.0" cy="463.0" r="3.8"/><circle class="bp" cx="319.0" cy="453.0" r="3.4"/><circle class="bp" cx="318.0" cy="460.0" r="3.3"/><circle class="bp" cx="323.0" cy="459.0" r="3.3"/><circle class="bp" cx="320.0" cy="464.0" r="3.5"/><line class="bp-line" x1="315.5" y1="463.0" x2="305.0" y2="469.0" stroke-width="4.8"/><circle class="bp" cx="305.0" cy="469.0" r="2.6"/><line class="bp-line" x1="305.0" y1="469.0" x2="303.5" y2="490.0" stroke-width="3.3"/><circle class="bp" cx="303.5" cy="490.0" r="1.6"/><line class="bp-line" x1="303.5" y1="490.0" x2="302.0" y2="503.0" stroke-width="2.4"/><circle class="bp" cx="302.0" cy="503.0" r="1.2"/><line class="bp-line" x1="302.0" y1="503.0" x2="300.8" y2="513.0" stroke-width="1.7"/><circle class="bp" cx="300.8" cy="513.0" r="1.0"/><line class="bp-line" x1="318.4" y1="463.0" x2="314.5" y2="469.0" stroke-width="5.1"/><circle class="bp" cx="314.5" cy="469.0" r="2.8"/><line class="bp-line" x1="314.5" y1="469.0" x2="313.9" y2="494.0" stroke-width="3.6"/><circle class="bp" cx="313.9" cy="494.0" r="1.8"/><line class="bp-line" x1="313.9" y1="494.0" x2="313.4" y2="510.0" stroke-width="2.5"/><circle class="bp" cx="313.4" cy="510.0" r="1.2"/><line class="bp-line" x1="313.4" y1="510.0" x2="313.0" y2="521.0" stroke-width="1.8"/><circle class="bp" cx="313.0" cy="521.0" r="1.0"/><line class="bp-line" x1="321.4" y1="463.0" x2="324.5" y2="469.0" stroke-width="4.9"/><circle class="bp" cx="324.5" cy="469.0" r="2.7"/><line class="bp-line" x1="324.5" y1="469.0" x2="324.9" y2="493.0" stroke-width="3.4"/><circle class="bp" cx="324.9" cy="493.0" r="1.7"/><line class="bp-line" x1="324.9" y1="493.0" x2="325.4" y2="508.0" stroke-width="2.4"/><circle class="bp" cx="325.4" cy="508.0" r="1.2"/><line class="bp-line" x1="325.4" y1="508.0" x2="325.8" y2="518.0" stroke-width="1.7"/><circle class="bp" cx="325.8" cy="518.0" r="1.0"/><line class="bp-line" x1="324.2" y1="463.0" x2="334.0" y2="469.0" stroke-width="4.2"/><circle class="bp" cx="334.0" cy="469.0" r="2.3"/><line class="bp-line" x1="334.0" y1="469.0" x2="335.4" y2="488.0" stroke-width="3.0"/><circle class="bp" cx="335.4" cy="488.0" r="1.5"/><line class="bp-line" x1="335.4" y1="488.0" x2="336.8" y2="500.0" stroke-width="2.1"/><circle class="bp" cx="336.8" cy="500.0" r="1.0"/><line class="bp-line" x1="336.8" y1="500.0" x2="337.9" y2="509.0" stroke-width="1.5"/><circle class="bp" cx="337.9" cy="509.0" r="0.8"/><line class="bp-line" x1="316.0" y1="461.0" x2="303.0" y2="471.0" stroke-width="5.2"/><circle class="bp" cx="303.0" cy="471.0" r="3.1"/><line class="bp-line" x1="303.0" y1="471.0" x2="293.0" y2="482.0" stroke-width="4.2"/><circle class="bp" cx="293.0" cy="482.0" r="2.6"/><line class="bp-line" x1="293.0" y1="482.0" x2="286.0" y2="491.0" stroke-width="3.3"/><circle class="bp" cx="286.0" cy="491.0" r="2.0"/>
+<line class="bp-line" x1="162.0" y1="420.0" x2="170.0" y2="620.0" stroke-width="20.0"/><circle class="bp" cx="162.0" cy="420.0" r="15.0"/><circle class="bp" cx="160.5" cy="620.4" r="13.3"/><circle class="bp" cx="179.5" cy="619.6" r="13.3"/>
+<line class="bp-line" x1="238.0" y1="420.0" x2="230.0" y2="620.0" stroke-width="20.0"/><circle class="bp" cx="238.0" cy="420.0" r="15.0"/><circle class="bp" cx="220.5" cy="619.6" r="13.3"/><circle class="bp" cx="239.5" cy="620.4" r="13.3"/>
+<path class="bp" d="M162,626 Q170,618 178,626 L176,640 Q170.0,646 164,640 Z"/>
+<path class="bp" d="M222,626 Q230,618 238,626 L236,640 Q230.0,646 224,640 Z"/>
+<line class="bp-line" x1="166.0" y1="638.0" x2="164.0" y2="805.0" stroke-width="15.5"/><circle class="bp" cx="166.0" cy="638.0" r="10.5"/><circle class="bp" cx="164.0" cy="805.0" r="9.5"/>
+<line class="bp-line" x1="180.0" y1="642.0" x2="177.0" y2="801.0" stroke-width="6.4"/><circle class="bp" cx="180.0" cy="642.0" r="5.2"/><circle class="bp" cx="177.0" cy="801.0" r="5.2"/>
+<line class="bp-line" x1="234.0" y1="638.0" x2="236.0" y2="805.0" stroke-width="15.5"/><circle class="bp" cx="234.0" cy="638.0" r="10.5"/><circle class="bp" cx="236.0" cy="805.0" r="9.5"/>
+<line class="bp-line" x1="220.0" y1="642.0" x2="223.0" y2="801.0" stroke-width="6.4"/><circle class="bp" cx="220.0" cy="642.0" r="5.2"/><circle class="bp" cx="223.0" cy="801.0" r="5.2"/>
+<ellipse class="bp" cx="162.0" cy="818.0" rx="9.0" ry="12.0"/><circle class="bp" cx="160.0" cy="825.0" r="4.4"/><circle class="bp" cx="157.0" cy="817.0" r="4.0"/><circle class="bp" cx="162.0" cy="810.0" r="3.8"/><circle class="bp" cx="166.0" cy="821.0" r="3.6"/><line class="bp-line" x1="160.0" y1="823.0" x2="153.6" y2="829.0" stroke-width="4.8"/><circle class="bp" cx="153.6" cy="829.0" r="2.3"/><line class="bp-line" x1="153.6" y1="829.0" x2="151.2" y2="842.0" stroke-width="2.6"/><circle class="bp" cx="151.2" cy="842.0" r="1.2"/><line class="bp-line" x1="151.2" y1="842.0" x2="150.0" y2="848.0" stroke-width="1.7"/><circle class="bp" cx="150.0" cy="848.0" r="1.0"/><line class="bp-line" x1="162.2" y1="823.0" x2="159.4" y2="829.0" stroke-width="5.2"/><circle class="bp" cx="159.4" cy="829.0" r="2.5"/><line class="bp-line" x1="159.4" y1="829.0" x2="158.4" y2="845.0" stroke-width="2.9"/><circle class="bp" cx="158.4" cy="845.0" r="1.3"/><line class="bp-line" x1="158.4" y1="845.0" x2="157.9" y2="852.0" stroke-width="1.9"/><circle class="bp" cx="157.9" cy="852.0" r="1.1"/><line class="bp-line" x1="164.5" y1="823.0" x2="165.3" y2="829.0" stroke-width="5.0"/><circle class="bp" cx="165.3" cy="829.0" r="2.4"/><line class="bp-line" x1="165.3" y1="829.0" x2="165.6" y2="846.0" stroke-width="2.8"/><circle class="bp" cx="165.6" cy="846.0" r="1.3"/><line class="bp-line" x1="165.6" y1="846.0" x2="165.8" y2="853.0" stroke-width="1.8"/><circle class="bp" cx="165.8" cy="853.0" r="1.1"/><line class="bp-line" x1="166.8" y1="823.0" x2="171.2" y2="829.0" stroke-width="4.5"/><circle class="bp" cx="171.2" cy="829.0" r="2.2"/><line class="bp-line" x1="171.2" y1="829.0" x2="172.8" y2="844.0" stroke-width="2.5"/><circle class="bp" cx="172.8" cy="844.0" r="1.2"/><line class="bp-line" x1="172.8" y1="844.0" x2="173.6" y2="850.0" stroke-width="1.6"/><circle class="bp" cx="173.6" cy="850.0" r="0.9"/><line class="bp-line" x1="168.8" y1="823.0" x2="176.3" y2="829.0" stroke-width="3.8"/><circle class="bp" cx="176.3" cy="829.0" r="1.8"/><line class="bp-line" x1="176.3" y1="829.0" x2="179.2" y2="840.0" stroke-width="2.1"/><circle class="bp" cx="179.2" cy="840.0" r="1.0"/><line class="bp-line" x1="179.2" y1="840.0" x2="180.6" y2="845.0" stroke-width="1.4"/><circle class="bp" cx="180.6" cy="845.0" r="0.8"/>
+<ellipse class="bp" cx="238.0" cy="818.0" rx="9.0" ry="12.0"/><circle class="bp" cx="240.0" cy="825.0" r="4.4"/><circle class="bp" cx="243.0" cy="817.0" r="4.0"/><circle class="bp" cx="238.0" cy="810.0" r="3.8"/><circle class="bp" cx="234.0" cy="821.0" r="3.6"/><line class="bp-line" x1="232.0" y1="823.0" x2="225.6" y2="829.0" stroke-width="4.8"/><circle class="bp" cx="225.6" cy="829.0" r="2.3"/><line class="bp-line" x1="225.6" y1="829.0" x2="223.2" y2="842.0" stroke-width="2.6"/><circle class="bp" cx="223.2" cy="842.0" r="1.2"/><line class="bp-line" x1="223.2" y1="842.0" x2="222.0" y2="848.0" stroke-width="1.7"/><circle class="bp" cx="222.0" cy="848.0" r="1.0"/><line class="bp-line" x1="234.2" y1="823.0" x2="231.4" y2="829.0" stroke-width="5.2"/><circle class="bp" cx="231.4" cy="829.0" r="2.5"/><line class="bp-line" x1="231.4" y1="829.0" x2="230.4" y2="845.0" stroke-width="2.9"/><circle class="bp" cx="230.4" cy="845.0" r="1.3"/><line class="bp-line" x1="230.4" y1="845.0" x2="229.9" y2="852.0" stroke-width="1.9"/><circle class="bp" cx="229.9" cy="852.0" r="1.1"/><line class="bp-line" x1="236.5" y1="823.0" x2="237.3" y2="829.0" stroke-width="5.0"/><circle class="bp" cx="237.3" cy="829.0" r="2.4"/><line class="bp-line" x1="237.3" y1="829.0" x2="237.6" y2="846.0" stroke-width="2.8"/><circle class="bp" cx="237.6" cy="846.0" r="1.3"/><line class="bp-line" x1="237.6" y1="846.0" x2="237.8" y2="853.0" stroke-width="1.8"/><circle class="bp" cx="237.8" cy="853.0" r="1.1"/><line class="bp-line" x1="238.8" y1="823.0" x2="243.2" y2="829.0" stroke-width="4.5"/><circle class="bp" cx="243.2" cy="829.0" r="2.2"/><line class="bp-line" x1="243.2" y1="829.0" x2="244.8" y2="844.0" stroke-width="2.5"/><circle class="bp" cx="244.8" cy="844.0" r="1.2"/><line class="bp-line" x1="244.8" y1="844.0" x2="245.6" y2="850.0" stroke-width="1.6"/><circle class="bp" cx="245.6" cy="850.0" r="0.9"/><line class="bp-line" x1="240.8" y1="823.0" x2="248.3" y2="829.0" stroke-width="3.8"/><circle class="bp" cx="248.3" cy="829.0" r="1.8"/><line class="bp-line" x1="248.3" y1="829.0" x2="251.2" y2="840.0" stroke-width="2.1"/><circle class="bp" cx="251.2" cy="840.0" r="1.0"/><line class="bp-line" x1="251.2" y1="840.0" x2="252.6" y2="845.0" stroke-width="1.4"/><circle class="bp" cx="252.6" cy="845.0" r="0.8"/>
+</g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.fungsi-section{background:linear-gradient(180deg, transparent, rgba(125,216,238,0.02) 50%, transparent);}
+.fungsi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+.fungsi-card{background:var(--void);padding:34px 28px;transition:background .25s ease;}
+.fungsi-card:hover{background:var(--panel);}
+.fungsi-icon{width:44px;height:44px;border-radius:12px;background:var(--phosphor-dim);display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.fungsi-icon svg{width:22px;height:22px;stroke:var(--phosphor);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.fungsi-card h3{font-size:18px;margin-bottom:10px;}
+.fungsi-card p{font-size:14.5px;color:var(--ink-dim);line-height:1.7;}
+@media(max-width:900px){.fungsi-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.fungsi-grid{grid-template-columns:1fr;}}
+</style>
+
+<section class="section fungsi-section" id="fungsi">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Mengapa Rangka Penting</div>
+      <h2>Enam Fungsi Utama Rangka Tubuh</h2>
+      <p>Lebih dari sekadar penopang, rangka adalah jaringan hidup dan organ aktif yang bekerja terus-menerus menjaga tubuh tetap berdiri, bergerak, dan berfungsi normal.</p>
+    </div>
+    <div class="fungsi-grid reveal">
+      <div class="fungsi-card">
+        <div class="fungsi-icon"><svg viewBox="0 0 24 24"><path d="M6 20V9M12 20V4M18 20V9"/><path d="M4 20h16"/></svg></div>
+        <h3>Penyokong Tubuh</h3>
+        <p>Menjadi struktur utama yang menopang seluruh berat tubuh, mempertahankan bentuk, dan menjaga tubuh tetap tegak saat berdiri maupun duduk.</p>
+      </div>
+      <div class="fungsi-card">
+        <div class="fungsi-icon"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 5-3.3 8.4-7 9.7-3.7-1.3-7-4.7-7-9.7V6l7-3z"/></svg></div>
+        <h3>Pelindung Organ Vital</h3>
+        <p>Tengkorak membungkus otak, rusuk & sternum mengamankan jantung dan paru-paru, ruas tulang belakang melindungi sumsum tulang belakang, dan panggul menjaga organ reproduksi.</p>
+      </div>
+      <div class="fungsi-card">
+        <div class="fungsi-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="14" r="2"/><path d="M9 14l3-9M9 14l6 3"/><path d="M17 4a6 6 0 0 1 1.5 9.5" stroke-dasharray="2.5 2.5"/></svg></div>
+        <h3>Alat Gerak Pasif</h3>
+        <p>Tulang bekerja sebagai pengungkit yang ditarik otot lewat tendon; bersama sendi, kombinasi ini menghasilkan gerakan tubuh dari berjalan hingga menulis.</p>
+      </div>
+      <div class="fungsi-card">
+        <div class="fungsi-icon"><svg viewBox="0 0 24 24"><path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z"/><path d="M12 2v18M4 6.5l8 4.5 8-4.5M4 15.5l8-4.5 8 4.5"/></svg></div>
+        <h3>Penyimpanan Mineral</h3>
+        <p>Matriks tulang menyimpan cadangan kalsium & fosfor tubuh, dilepaskan ke aliran darah saat kadar mineral dibutuhkan sel, saraf, dan otot.</p>
+      </div>
+      <div class="fungsi-card">
+        <div class="fungsi-icon"><svg viewBox="0 0 24 24"><path d="M12 3c4 5 6.5 8.3 6.5 11.2A6.5 6.5 0 0 1 5.5 14.2C5.5 11.3 8 8 12 3z"/></svg></div>
+        <h3>Produksi Sel Darah</h3>
+        <p>Di dalam sumsum tulang merah, proses hematopoiesis menghasilkan sel darah merah, sel darah putih, dan trombosit secara terus-menerus.</p>
+      </div>
+      <div class="fungsi-card">
+        <div class="fungsi-icon"><svg viewBox="0 0 24 24"><path d="M12 21a5 5 0 0 0 5-5c0-2-1.5-3-1-5.5-1.5 1-2 2.5-2 2.5-.3-2.5-.8-4-3-6.5-1 3-2.5 3.5-3.5 6-.7 1.7-.5 2.5-.5 3.5a5 5 0 0 0 5 5z"/></svg></div>
+        <h3>Cadangan Energi</h3>
+        <p>Sumsum tulang kuning yang kaya jaringan lemak menjadi cadangan energi tubuh yang dapat dimanfaatkan saat diperlukan.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.simulator-section{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.sim-toolbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:28px;}
+.search-wrap{position:relative;flex:1;min-width:240px;max-width:380px;}
+.search-input{
+  width:100%;background:var(--void);border:1px solid var(--line-strong);color:var(--ink);
+  font-family:var(--font-mono);font-size:13px;padding:12px 16px;border-radius:24px;outline:none;
+}
+.search-input::placeholder{color:var(--ink-faint);}
+.search-input:focus{border-color:var(--phosphor);}
+.search-results{position:absolute;top:calc(100% + 8px);left:0;right:0;background:var(--void);border:1px solid var(--line-strong);border-radius:12px;overflow:hidden;z-index:20;display:none;max-height:260px;overflow-y:auto;}
+.search-results.show{display:block;}
+.search-result-item{padding:11px 16px;font-size:13.5px;border-bottom:1px solid var(--line);}
+.search-result-item:last-child{border-bottom:none;}
+.search-result-item:hover{background:var(--panel-2);color:var(--phosphor);cursor:pointer;}
+.filter-chips{display:flex;gap:8px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:0.04em;}
+.filter-chip{padding:9px 16px;border-radius:20px;border:1px solid var(--line-strong);color:var(--ink-dim);background:transparent;text-transform:uppercase;transition:all .2s ease;}
+.filter-chip.active{background:var(--phosphor-dim);border-color:var(--phosphor);color:var(--phosphor);}
+.filter-chip:hover{border-color:var(--phosphor);}
+
+.sim-grid{display:grid;grid-template-columns:1.2fr 0.9fr;gap:28px;align-items:start;}
+.sim-stage{
+  position:relative;background:radial-gradient(ellipse at 50% 20%, rgba(125,216,238,0.08), transparent 60%), var(--void);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;padding:20px;
+}
+.sim-stage .corner{position:absolute;width:16px;height:16px;border:2px solid var(--phosphor);opacity:0.45;}
+.sim-stage .corner.tl{top:12px;left:12px;border-right:none;border-bottom:none;}
+.sim-stage .corner.tr{top:12px;right:12px;border-left:none;border-bottom:none;}
+.sim-stage .corner.bl{bottom:12px;left:12px;border-right:none;border-top:none;}
+.sim-stage .corner.br{bottom:12px;right:12px;border-left:none;border-top:none;}
+.sim-stage .scanline{animation-duration:6s;}
+.sim-svg-wrap{max-width:420px;margin:0 auto;position:relative;}
+.bone-hotspot{cursor:pointer;}
+.bp{fill:var(--bone);stroke:var(--bone-shadow);stroke-width:0.6;}
+.bp-line{stroke:var(--bone);fill:none;stroke-linecap:round;}
+.bp-line2{stroke:var(--bone-shadow);fill:none;stroke-width:1.2;stroke-linecap:round;opacity:0.65;}
+.bp-line3{stroke:var(--bone);fill:none;stroke-width:9;stroke-linecap:round;}
+.bp-hole{fill:#050710;stroke:none;}
+.cart{fill:rgba(169,232,245,0.32);stroke:rgba(169,232,245,0.65);stroke-width:1;}
+.cart-line{stroke:rgba(169,232,245,0.5);fill:none;stroke-width:2;stroke-linecap:round;}
+.lig{stroke:var(--amber);fill:none;opacity:0.92;}
+.patella{fill:var(--bone);stroke:var(--phosphor);stroke-width:1.5;opacity:0.94;}
+.bone-hotspot .bp,.bone-hotspot .bp-line{transition:fill .2s ease,stroke .2s ease,opacity .2s ease,filter .2s ease;}
+.bone-hotspot:hover .bp{fill:var(--phosphor-bright);}
+.bone-hotspot:hover .bp-line{stroke:var(--phosphor-bright);}
+.bone-hotspot:hover .bp-line3{stroke:var(--phosphor-bright);}
+.bone-hotspot.active .bp{fill:var(--phosphor);filter:drop-shadow(0 0 5px var(--phosphor));}
+.bone-hotspot.active .bp-line{stroke:var(--phosphor);filter:drop-shadow(0 0 5px var(--phosphor));}
+.bone-hotspot.active .bp-line3{stroke:var(--phosphor);filter:drop-shadow(0 0 5px var(--phosphor));}
+.sim-svg-wrap svg{overflow:visible;animation:idle-breathe 6s ease-in-out infinite;transform-origin:50% 50%;}
+@keyframes idle-breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.006);}}
+@media(prefers-reduced-motion:reduce){.sim-svg-wrap svg{animation:none;}}
+.simulator-svg.filter-aksial [data-category="apendikular"]{opacity:0.12;}
+.simulator-svg.filter-apendikular [data-category="aksial"]{opacity:0.12;}
+
+.sim-counter{display:flex;align-items:center;gap:12px;margin-top:18px;font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);letter-spacing:0.05em;}
+.sim-counter .bar{flex:1;height:4px;background:var(--panel-2);border-radius:4px;overflow:hidden;}
+.sim-counter .bar i{display:block;height:100%;background:var(--phosphor);width:0%;transition:width .4s ease;}
+.sim-counter b{color:var(--phosphor);font-weight:600;}
+
+.specimen-card{background:var(--void);border:1px solid var(--line);border-radius:var(--radius);padding:28px;min-height:420px;display:flex;flex-direction:column;position:sticky;top:96px;}
+.specimen-empty{margin:auto;text-align:center;color:var(--ink-faint);padding:20px;}
+.specimen-empty svg{width:36px;height:36px;stroke:var(--ink-faint);fill:none;stroke-width:1.2;margin:0 auto 16px;}
+.specimen-empty p{font-size:13.5px;font-family:var(--font-mono);line-height:1.8;max-width:220px;margin:0 auto;}
+.specimen-tag{display:inline-block;font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.1em;color:var(--phosphor);background:var(--phosphor-dim);padding:5px 12px;border-radius:20px;margin-bottom:16px;width:fit-content;}
+.specimen-content h3{font-size:24px;margin-bottom:4px;}
+.specimen-latin{font-family:var(--font-body);font-style:italic;color:var(--ink-dim);font-size:15px;margin-bottom:22px;}
+.specimen-rows{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line);margin-bottom:20px;}
+.srow{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+.srow span{font-family:var(--font-mono);color:var(--ink-faint);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;flex-shrink:0;padding-top:2px;}
+.srow b{text-align:right;font-weight:500;color:var(--ink);}
+.specimen-block{margin-bottom:18px;}
+.specimen-block span{font-family:var(--font-mono);color:var(--phosphor);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:block;margin-bottom:8px;}
+.specimen-block p{font-size:14.5px;color:var(--ink-dim);line-height:1.7;}
+.specimen-block.fakta{background:var(--amber-dim);border-radius:12px;padding:14px 16px;margin-bottom:0;}
+.specimen-block.fakta span{color:var(--amber);}
+.specimen-block.fakta p{color:var(--ink);}
+
+@media(max-width:980px){
+  .sim-grid{grid-template-columns:1fr;}
+  .specimen-card{position:static;min-height:auto;}
+}
+</style>
+
+<section class="section simulator-section" id="simulator">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Simulator Interaktif</div>
+      <h2>Sentuh Tulang, Baca Datanya</h2>
+      <p>Simulator di bawah menampilkan rangka manusia tampak depan. Klik atau ketuk salah satu bagian tulang untuk membuka kartu spesimen digital lengkap dengan nama, kategori, lokasi, fungsi, dan fakta menariknya.</p>
+    </div>
+
+    <div class="sim-toolbar reveal">
+      <div class="search-wrap">
+        <input type="text" class="search-input" id="boneSearch" placeholder="Cari nama tulang… misal: femur" oninput="handleSearch(this.value)" onfocus="handleSearch(this.value)">
+        <div class="search-results" id="searchResults"></div>
+      </div>
+      <div class="filter-chips">
+        <button class="filter-chip active" data-filter="semua" onclick="setFilter('semua')">Semua</button>
+        <button class="filter-chip" data-filter="aksial" onclick="setFilter('aksial')">Aksial</button>
+        <button class="filter-chip" data-filter="apendikular" onclick="setFilter('apendikular')">Apendikular</button>
+      </div>
+    </div>
+
+    <div class="sim-grid reveal">
+      <div class="sim-stage">
+        <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+        <div class="scanline"></div>
+        <div class="sim-svg-wrap">
+          <svg class="simulator-svg" id="simSvg" viewBox="0 0 400 900" xmlns="http://www.w3.org/2000/svg">
+
+<g class="bone-hotspot" data-category="aksial" data-bone="kranium" onclick="selectBone('kranium')"><path class="bp" d="M200,20 C 173,20 167,36 167,64 C 167,91 172,105 180,116 Q 200,123 220,116 C 228,105 233,91 233,64 C 233,36 227,20 200,20 Z"/><ellipse class="bp-hole" cx="186.1" cy="70.0" rx="7.9" ry="9.0"/><ellipse class="bp-hole" cx="213.9" cy="70.0" rx="7.9" ry="9.0"/><path class="bp-hole" d="M194,78 L206,78 L203,95 Q200,98 197,95 Z"/><path class="bp-line2" d="M183,59 Q193,55 200,59 M200,59 Q207,55 217,59"/><path class="bp-line2" d="M200,22 L200,57"/><path class="bp-line2" d="M177,42 Q200,30 223,42"/><path class="bp-line2" d="M180,72 Q170,76 170,94"/><path class="bp-line2" d="M220,72 Q230,76 230,94"/><path class="bp-line2" d="M171,50 Q169,54 174,64"/><path class="bp-line2" d="M229,50 Q231,54 226,64"/><line class="bp-line" x1="183.5" y1="109.0" x2="216.5" y2="109.0" stroke-width="1.6"/><line class="bp-line" x1="185.2" y1="106.0" x2="185.2" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="190.1" y1="106.0" x2="190.1" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="195.1" y1="106.0" x2="195.1" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="200.0" y1="106.0" x2="200.0" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="205.0" y1="106.0" x2="205.0" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="209.9" y1="106.0" x2="209.9" y2="112.0" stroke-width="0.9"/><line class="bp-line" x1="214.9" y1="106.0" x2="214.9" y2="112.0" stroke-width="0.9"/></g>
+<g class="bone-hotspot" data-category="aksial" data-bone="mandibula" onclick="selectBone('mandibula')"><path class="bp" d="M180,114 Q182,127 190,133 Q200,137 210,133 Q218,127 220,114 Q200,122 180,114 Z"/></g>
+<g class="bone-hotspot" data-category="aksial" data-bone="tulang-belakang" onclick="selectBone('tulang-belakang')"><ellipse class="bp" cx="200.0" cy="128.0" rx="6.2" ry="4.4"/><ellipse class="bp" cx="200.0" cy="129.5" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="125.1" x2="200.0" y2="122.0" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="131.0" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="126.6" x2="200.0" y2="123.5" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="132.5" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="128.1" x2="200.0" y2="125.0" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="134.0" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="129.6" x2="200.0" y2="126.5" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="135.5" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="131.1" x2="200.0" y2="128.0" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="137.0" rx="6.2" ry="4.4"/><line class="bp-line2" x1="200.0" y1="132.6" x2="200.0" y2="129.5" stroke-width="1.6"/><ellipse class="bp" cx="200.0" cy="157.0" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,160 L200,168 L203,160 Z"/><ellipse class="bp" cx="200.0" cy="171.5" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,175 L200,182 L203,175 Z"/><ellipse class="bp" cx="200.0" cy="185.9" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,189 L200,197 L203,189 Z"/><ellipse class="bp" cx="200.0" cy="200.4" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,204 L200,211 L203,204 Z"/><ellipse class="bp" cx="200.0" cy="214.8" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,218 L200,226 L203,218 Z"/><ellipse class="bp" cx="200.0" cy="229.3" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,233 L200,240 L203,233 Z"/><ellipse class="bp" cx="200.0" cy="243.7" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,247 L200,255 L203,247 Z"/><ellipse class="bp" cx="200.0" cy="258.2" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,262 L200,269 L203,262 Z"/><ellipse class="bp" cx="200.0" cy="272.6" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,276 L200,284 L203,276 Z"/><ellipse class="bp" cx="200.0" cy="287.1" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,291 L200,298 L203,291 Z"/><ellipse class="bp" cx="200.0" cy="301.5" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,305 L200,313 L203,305 Z"/><ellipse class="bp" cx="200.0" cy="316.0" rx="5.6" ry="4.2"/><path class="bp-line2" d="M197,320 L200,327 L203,320 Z"/><ellipse class="bp" cx="200.0" cy="326.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,326 L185,324 M209,326 L215,324"/><line class="bp-line2" x1="200.0" y1="332.8" x2="200.0" y2="337.0" stroke-width="2.0"/><ellipse class="bp" cx="200.0" cy="332.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,332 L185,330 M209,332 L215,330"/><line class="bp-line2" x1="200.0" y1="338.8" x2="200.0" y2="343.0" stroke-width="2.0"/><ellipse class="bp" cx="200.0" cy="338.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,338 L185,336 M209,338 L215,336"/><line class="bp-line2" x1="200.0" y1="344.8" x2="200.0" y2="349.0" stroke-width="2.0"/><ellipse class="bp" cx="200.0" cy="344.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,344 L185,342 M209,344 L215,342"/><line class="bp-line2" x1="200.0" y1="350.8" x2="200.0" y2="355.0" stroke-width="2.0"/><ellipse class="bp" cx="200.0" cy="350.0" rx="9.4" ry="6.8"/><path class="bp-line2" d="M191,350 L185,348 M209,350 L215,348"/><line class="bp-line2" x1="200.0" y1="356.8" x2="200.0" y2="361.0" stroke-width="2.0"/><path class="bp vert-sacral" d="M184,354 L216,354 L210,392 Q200,404 190,392 Z"/><ellipse class="bp-hole" cx="194.0" cy="364.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="206.0" cy="364.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="194.0" cy="375.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="206.0" cy="375.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="194.0" cy="386.0" rx="2.2" ry="2.8"/><ellipse class="bp-hole" cx="206.0" cy="386.0" rx="2.2" ry="2.8"/><ellipse class="bp vert-sacral" cx="200.0" cy="412.0" rx="3.6" ry="6.0"/></g>
+<g class="bone-hotspot" data-category="aksial" data-bone="sternum" onclick="selectBone('sternum')"><path class="bp" d="M191,145 L209,145 L210,159 L207,276 Q203,294 200,296 Q197,294 193,276 L190,159 Z"/><path class="bp-line2" d="M191,159 L209,159"/></g>
+<g class="bone-hotspot" data-category="aksial" data-bone="rusuk" onclick="selectBone('rusuk')"><path class="bp" d="M191.7,150.5 L188.5,150.2 L185.2,150.4 L181.9,150.9 L178.5,151.7 L175.1,153.0 L171.5,154.6 L167.9,156.7 L164.3,159.1 L160.5,161.9 L156.7,165.1 L153.1,160.9 L157.3,157.7 L161.5,154.9 L165.6,152.5 L169.6,150.6 L173.6,149.0 L177.5,147.9 L181.3,147.1 L185.0,146.8 L188.7,147.0 L192.3,147.5 Z"/><path class="bp" d="M191.8,168.4 L186.9,168.2 L181.9,168.5 L176.9,169.1 L171.9,170.2 L166.9,171.8 L161.9,173.8 L156.8,176.3 L151.7,179.2 L146.5,182.5 L141.3,186.3 L137.4,181.0 L143.0,177.2 L148.7,173.9 L154.3,171.1 L159.8,168.8 L165.4,166.9 L170.8,165.6 L176.3,164.7 L181.6,164.2 L187.0,164.3 L192.2,164.8 Z"/><path class="bp" d="M191.8,186.3 L185.6,186.1 L179.5,186.5 L173.3,187.3 L167.1,188.6 L161.0,190.5 L154.8,192.8 L148.6,195.7 L142.4,199.0 L136.2,202.9 L130.0,207.3 L125.7,201.2 L132.4,196.9 L139.2,193.1 L145.9,189.9 L152.6,187.2 L159.3,185.0 L165.9,183.4 L172.5,182.3 L179.1,181.7 L185.7,181.7 L192.2,182.2 Z"/><path class="bp" d="M191.8,204.0 L184.8,203.9 L177.9,204.3 L171.0,205.3 L164.1,206.9 L157.2,209.0 L150.3,211.7 L143.4,214.9 L136.5,218.7 L129.6,223.1 L122.8,228.0 L118.2,221.7 L125.6,216.8 L133.0,212.5 L140.5,208.8 L147.9,205.7 L155.3,203.2 L162.7,201.3 L170.1,200.0 L177.5,199.3 L184.9,199.2 L192.2,199.7 Z"/><path class="bp" d="M191.8,221.6 L184.6,221.5 L177.4,222.1 L170.2,223.2 L163.1,225.0 L156.0,227.4 L148.8,230.3 L141.7,234.0 L134.6,238.2 L127.5,243.1 L120.4,248.6 L115.6,242.4 L123.2,237.0 L130.9,232.2 L138.6,228.0 L146.3,224.5 L153.9,221.6 L161.6,219.5 L169.3,217.9 L176.9,217.1 L184.6,216.9 L192.2,217.4 Z"/><path class="bp" d="M191.8,239.2 L184.9,239.1 L178.0,239.7 L171.1,241.0 L164.2,242.9 L157.3,245.5 L150.5,248.8 L143.6,252.8 L136.7,257.5 L129.8,262.8 L122.9,268.9 L118.0,263.4 L125.4,257.3 L132.8,252.0 L140.3,247.3 L147.7,243.4 L155.2,240.2 L162.6,237.7 L170.0,236.0 L177.4,235.0 L184.8,234.7 L192.2,235.1 Z"/><path class="bp" d="M191.8,256.6 L185.5,256.5 L179.2,257.2 L173.0,258.6 L166.7,260.7 L160.4,263.5 L154.1,267.1 L147.7,271.5 L141.4,276.6 L135.0,282.4 L128.6,289.0 L123.8,284.5 L130.7,277.8 L137.5,272.0 L144.4,266.8 L151.3,262.5 L158.1,259.0 L165.0,256.2 L171.8,254.2 L178.6,253.0 L185.4,252.6 L192.2,252.9 Z"/><path class="bp" d="M191.8,273.9 L186.6,273.8 L181.4,274.6 L176.2,276.1 L170.9,278.4 L165.6,281.5 L160.2,285.4 L154.8,290.1 L149.3,295.6 L143.8,301.9 L138.3,309.1 L133.8,305.7 L139.7,298.5 L145.6,292.1 L151.5,286.5 L157.4,281.7 L163.3,277.8 L169.1,274.7 L174.9,272.4 L180.7,271.1 L186.5,270.5 L192.2,270.8 Z"/><path class="bp" d="M191.8,291.3 L188.1,291.2 L184.3,292.0 L180.5,293.6 L176.5,296.0 L172.5,299.3 L168.4,303.5 L164.2,308.6 L159.9,314.6 L155.6,321.4 L151.2,329.1 L147.2,326.9 L151.8,319.1 L156.5,312.2 L161.1,306.1 L165.6,301.0 L170.1,296.7 L174.6,293.3 L179.1,290.7 L183.5,289.1 L187.9,288.5 L192.2,288.7 Z"/><path class="cart-line" d="M191,200 Q186,205 194,211"/><path class="cart-line" d="M191,218 Q186,222 194,228"/><path class="cart-line" d="M191,235 Q186,240 194,246"/><path class="cart-line" d="M191,253 Q186,258 194,264"/><path class="cart-line" d="M191,270 Q186,275 194,281"/><path class="cart-line" d="M191,288 Q186,293 194,299"/></g>
+<g class="bone-hotspot" data-category="aksial" data-bone="rusuk" onclick="selectBone('rusuk')"><path class="bp" d="M208.3,150.5 L211.5,150.2 L214.8,150.4 L218.1,150.9 L221.5,151.7 L224.9,153.0 L228.5,154.6 L232.1,156.7 L235.7,159.1 L239.5,161.9 L243.3,165.1 L246.9,160.9 L242.7,157.7 L238.5,154.9 L234.4,152.5 L230.4,150.6 L226.4,149.0 L222.5,147.9 L218.7,147.1 L215.0,146.8 L211.3,147.0 L207.7,147.5 Z"/><path class="bp" d="M208.2,168.4 L213.1,168.2 L218.1,168.5 L223.1,169.1 L228.1,170.2 L233.1,171.8 L238.1,173.8 L243.2,176.3 L248.3,179.2 L253.5,182.5 L258.7,186.3 L262.6,181.0 L257.0,177.2 L251.3,173.9 L245.7,171.1 L240.2,168.8 L234.6,166.9 L229.2,165.6 L223.7,164.7 L218.4,164.2 L213.0,164.3 L207.8,164.8 Z"/><path class="bp" d="M208.2,186.3 L214.4,186.1 L220.5,186.5 L226.7,187.3 L232.9,188.6 L239.0,190.5 L245.2,192.8 L251.4,195.7 L257.6,199.0 L263.8,202.9 L270.0,207.3 L274.3,201.2 L267.6,196.9 L260.8,193.1 L254.1,189.9 L247.4,187.2 L240.7,185.0 L234.1,183.4 L227.5,182.3 L220.9,181.7 L214.3,181.7 L207.8,182.2 Z"/><path class="bp" d="M208.2,204.0 L215.2,203.9 L222.1,204.3 L229.0,205.3 L235.9,206.9 L242.8,209.0 L249.7,211.7 L256.6,214.9 L263.5,218.7 L270.4,223.1 L277.2,228.0 L281.8,221.7 L274.4,216.8 L267.0,212.5 L259.5,208.8 L252.1,205.7 L244.7,203.2 L237.3,201.3 L229.9,200.0 L222.5,199.3 L215.1,199.2 L207.8,199.7 Z"/><path class="bp" d="M208.2,221.6 L215.4,221.5 L222.6,222.1 L229.8,223.2 L236.9,225.0 L244.0,227.4 L251.2,230.3 L258.3,234.0 L265.4,238.2 L272.5,243.1 L279.6,248.6 L284.4,242.4 L276.8,237.0 L269.1,232.2 L261.4,228.0 L253.7,224.5 L246.1,221.6 L238.4,219.5 L230.7,217.9 L223.1,217.1 L215.4,216.9 L207.8,217.4 Z"/><path class="bp" d="M208.2,239.2 L215.1,239.1 L222.0,239.7 L228.9,241.0 L235.8,242.9 L242.7,245.5 L249.5,248.8 L256.4,252.8 L263.3,257.5 L270.2,262.8 L277.1,268.9 L282.0,263.4 L274.6,257.3 L267.2,252.0 L259.7,247.3 L252.3,243.4 L244.8,240.2 L237.4,237.7 L230.0,236.0 L222.6,235.0 L215.2,234.7 L207.8,235.1 Z"/><path class="bp" d="M208.2,256.6 L214.5,256.5 L220.8,257.2 L227.0,258.6 L233.3,260.7 L239.6,263.5 L245.9,267.1 L252.3,271.5 L258.6,276.6 L265.0,282.4 L271.4,289.0 L276.2,284.5 L269.3,277.8 L262.5,272.0 L255.6,266.8 L248.7,262.5 L241.9,259.0 L235.0,256.2 L228.2,254.2 L221.4,253.0 L214.6,252.6 L207.8,252.9 Z"/><path class="bp" d="M208.2,273.9 L213.4,273.8 L218.6,274.6 L223.8,276.1 L229.1,278.4 L234.4,281.5 L239.8,285.4 L245.2,290.1 L250.7,295.6 L256.2,301.9 L261.7,309.1 L266.2,305.7 L260.3,298.5 L254.4,292.1 L248.5,286.5 L242.6,281.7 L236.7,277.8 L230.9,274.7 L225.1,272.4 L219.3,271.1 L213.5,270.5 L207.8,270.8 Z"/><path class="bp" d="M208.2,291.3 L211.9,291.2 L215.7,292.0 L219.5,293.6 L223.5,296.0 L227.5,299.3 L231.6,303.5 L235.8,308.6 L240.1,314.6 L244.4,321.4 L248.8,329.1 L252.8,326.9 L248.2,319.1 L243.5,312.2 L238.9,306.1 L234.4,301.0 L229.9,296.7 L225.4,293.3 L220.9,290.7 L216.5,289.1 L212.1,288.5 L207.8,288.7 Z"/><path class="cart-line" d="M209,200 Q214,205 206,211"/><path class="cart-line" d="M209,218 Q214,222 206,228"/><path class="cart-line" d="M209,235 Q214,240 206,246"/><path class="cart-line" d="M209,253 Q214,258 206,264"/><path class="cart-line" d="M209,270 Q214,275 206,281"/><path class="cart-line" d="M209,288 Q214,293 206,299"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="pelvis" onclick="selectBone('pelvis')"><path class="bp" d="M161,320 C 140,322 129,336 135,360 C 140,378 156,388 156,386 C 160,402 166,406 179,414 Q 200,422 221,414 C 234,406 240,402 244,386 C 244,388 260,378 265,360 C 271,336 260,322 239,320 Q 200,342 161,320 Z"/><circle class="bp-line2" cx="162.0" cy="386.0" r="7.0"/><circle class="bp-line2" cx="238.0" cy="386.0" r="7.0"/><circle class="bp-hole" cx="162.0" cy="386.0" r="2.4"/><circle class="bp-hole" cx="238.0" cy="386.0" r="2.4"/><path class="bp-line2" d="M162,379 Q161,358 164,334 M157,390 Q151,412 177,410 M166,392 Q173,415 181,428"/><path class="bp-line2" d="M238,379 Q239,358 236,334 M243,390 Q249,412 223,410 M234,392 Q227,415 219,428"/><ellipse class="bp" cx="179.1" cy="432.0" rx="6.0" ry="4.0"/><ellipse class="bp" cx="220.9" cy="432.0" rx="6.0" ry="4.0"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="klavikula" onclick="selectBone('klavikula')"><path class="bp-line3" d="M189,143 C153,137 125,139 106,135"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="klavikula" onclick="selectBone('klavikula')"><path class="bp-line3" d="M211,143 C247,137 275,139 294,135"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="skapula" onclick="selectBone('skapula')"><path class="bp" d="M110,131 L140,142 L144,187 Q118,197 106,181 Z"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="skapula" onclick="selectBone('skapula')"><path class="bp" d="M290,131 L260,142 L256,187 Q282,197 294,181 Z"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="humerus" onclick="selectBone('humerus')"><line class="bp-line" x1="106.0" y1="135.0" x2="92.0" y2="295.0" stroke-width="15.0"/><circle class="bp" cx="106.0" cy="135.0" r="12.5"/><circle class="bp" cx="85.0" cy="294.4" r="8.6"/><circle class="bp" cx="99.0" cy="295.6" r="8.6"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="humerus" onclick="selectBone('humerus')"><line class="bp-line" x1="294.0" y1="135.0" x2="308.0" y2="295.0" stroke-width="15.0"/><circle class="bp" cx="294.0" cy="135.0" r="12.5"/><circle class="bp" cx="301.0" cy="295.6" r="8.6"/><circle class="bp" cx="315.0" cy="294.4" r="8.6"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="ulna" onclick="selectBone('ulna')"><line class="bp-line" x1="89.0" y1="299.0" x2="80.0" y2="455.0" stroke-width="7.4"/><circle class="bp" cx="89.0" cy="299.0" r="8.0"/><circle class="bp" cx="80.0" cy="455.0" r="6.0"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="radius" onclick="selectBone('radius')"><line class="bp-line" x1="97.0" y1="301.0" x2="89.0" y2="455.0" stroke-width="6.2"/><circle class="bp" cx="97.0" cy="301.0" r="5.4"/><circle class="bp" cx="89.0" cy="455.0" r="6.0"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="ulna" onclick="selectBone('ulna')"><line class="bp-line" x1="311.0" y1="299.0" x2="320.0" y2="455.0" stroke-width="7.4"/><circle class="bp" cx="311.0" cy="299.0" r="8.0"/><circle class="bp" cx="320.0" cy="455.0" r="6.0"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="radius" onclick="selectBone('radius')"><line class="bp-line" x1="303.0" y1="301.0" x2="311.0" y2="455.0" stroke-width="6.2"/><circle class="bp" cx="303.0" cy="301.0" r="5.4"/><circle class="bp" cx="311.0" cy="455.0" r="6.0"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="tulang-tangan" onclick="selectBone('tulang-tangan')"><circle class="bp" cx="84.0" cy="457.0" r="4.2"/><circle class="bp" cx="77.0" cy="456.0" r="4.0"/><circle class="bp" cx="86.0" cy="462.0" r="3.7"/><circle class="bp" cx="75.0" cy="463.0" r="3.8"/><circle class="bp" cx="81.0" cy="453.0" r="3.4"/><circle class="bp" cx="82.0" cy="460.0" r="3.3"/><circle class="bp" cx="77.0" cy="459.0" r="3.3"/><circle class="bp" cx="80.0" cy="464.0" r="3.5"/><line class="bp-line" x1="84.5" y1="463.0" x2="95.0" y2="469.0" stroke-width="4.8"/><circle class="bp" cx="95.0" cy="469.0" r="2.6"/><line class="bp-line" x1="95.0" y1="469.0" x2="96.5" y2="490.0" stroke-width="3.3"/><circle class="bp" cx="96.5" cy="490.0" r="1.6"/><line class="bp-line" x1="96.5" y1="490.0" x2="98.0" y2="503.0" stroke-width="2.4"/><circle class="bp" cx="98.0" cy="503.0" r="1.2"/><line class="bp-line" x1="98.0" y1="503.0" x2="99.2" y2="513.0" stroke-width="1.7"/><circle class="bp" cx="99.2" cy="513.0" r="1.0"/><line class="bp-line" x1="81.7" y1="463.0" x2="85.5" y2="469.0" stroke-width="5.1"/><circle class="bp" cx="85.5" cy="469.0" r="2.8"/><line class="bp-line" x1="85.5" y1="469.0" x2="86.0" y2="494.0" stroke-width="3.6"/><circle class="bp" cx="86.0" cy="494.0" r="1.8"/><line class="bp-line" x1="86.0" y1="494.0" x2="86.6" y2="510.0" stroke-width="2.5"/><circle class="bp" cx="86.6" cy="510.0" r="1.2"/><line class="bp-line" x1="86.6" y1="510.0" x2="87.0" y2="521.0" stroke-width="1.8"/><circle class="bp" cx="87.0" cy="521.0" r="1.0"/><line class="bp-line" x1="78.7" y1="463.0" x2="75.5" y2="469.0" stroke-width="4.9"/><circle class="bp" cx="75.5" cy="469.0" r="2.7"/><line class="bp-line" x1="75.5" y1="469.0" x2="75.0" y2="493.0" stroke-width="3.4"/><circle class="bp" cx="75.0" cy="493.0" r="1.7"/><line class="bp-line" x1="75.0" y1="493.0" x2="74.6" y2="508.0" stroke-width="2.4"/><circle class="bp" cx="74.6" cy="508.0" r="1.2"/><line class="bp-line" x1="74.6" y1="508.0" x2="74.2" y2="518.0" stroke-width="1.7"/><circle class="bp" cx="74.2" cy="518.0" r="1.0"/><line class="bp-line" x1="75.8" y1="463.0" x2="66.0" y2="469.0" stroke-width="4.2"/><circle class="bp" cx="66.0" cy="469.0" r="2.3"/><line class="bp-line" x1="66.0" y1="469.0" x2="64.6" y2="488.0" stroke-width="3.0"/><circle class="bp" cx="64.6" cy="488.0" r="1.5"/><line class="bp-line" x1="64.6" y1="488.0" x2="63.2" y2="500.0" stroke-width="2.1"/><circle class="bp" cx="63.2" cy="500.0" r="1.0"/><line class="bp-line" x1="63.2" y1="500.0" x2="62.1" y2="509.0" stroke-width="1.5"/><circle class="bp" cx="62.1" cy="509.0" r="0.8"/><line class="bp-line" x1="84.0" y1="461.0" x2="97.0" y2="471.0" stroke-width="5.2"/><circle class="bp" cx="97.0" cy="471.0" r="3.1"/><line class="bp-line" x1="97.0" y1="471.0" x2="107.0" y2="482.0" stroke-width="4.2"/><circle class="bp" cx="107.0" cy="482.0" r="2.6"/><line class="bp-line" x1="107.0" y1="482.0" x2="114.0" y2="491.0" stroke-width="3.3"/><circle class="bp" cx="114.0" cy="491.0" r="2.0"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="tulang-tangan" onclick="selectBone('tulang-tangan')"><circle class="bp" cx="316.0" cy="457.0" r="4.2"/><circle class="bp" cx="323.0" cy="456.0" r="4.0"/><circle class="bp" cx="314.0" cy="462.0" r="3.7"/><circle class="bp" cx="325.0" cy="463.0" r="3.8"/><circle class="bp" cx="319.0" cy="453.0" r="3.4"/><circle class="bp" cx="318.0" cy="460.0" r="3.3"/><circle class="bp" cx="323.0" cy="459.0" r="3.3"/><circle class="bp" cx="320.0" cy="464.0" r="3.5"/><line class="bp-line" x1="315.5" y1="463.0" x2="305.0" y2="469.0" stroke-width="4.8"/><circle class="bp" cx="305.0" cy="469.0" r="2.6"/><line class="bp-line" x1="305.0" y1="469.0" x2="303.5" y2="490.0" stroke-width="3.3"/><circle class="bp" cx="303.5" cy="490.0" r="1.6"/><line class="bp-line" x1="303.5" y1="490.0" x2="302.0" y2="503.0" stroke-width="2.4"/><circle class="bp" cx="302.0" cy="503.0" r="1.2"/><line class="bp-line" x1="302.0" y1="503.0" x2="300.8" y2="513.0" stroke-width="1.7"/><circle class="bp" cx="300.8" cy="513.0" r="1.0"/><line class="bp-line" x1="318.4" y1="463.0" x2="314.5" y2="469.0" stroke-width="5.1"/><circle class="bp" cx="314.5" cy="469.0" r="2.8"/><line class="bp-line" x1="314.5" y1="469.0" x2="313.9" y2="494.0" stroke-width="3.6"/><circle class="bp" cx="313.9" cy="494.0" r="1.8"/><line class="bp-line" x1="313.9" y1="494.0" x2="313.4" y2="510.0" stroke-width="2.5"/><circle class="bp" cx="313.4" cy="510.0" r="1.2"/><line class="bp-line" x1="313.4" y1="510.0" x2="313.0" y2="521.0" stroke-width="1.8"/><circle class="bp" cx="313.0" cy="521.0" r="1.0"/><line class="bp-line" x1="321.4" y1="463.0" x2="324.5" y2="469.0" stroke-width="4.9"/><circle class="bp" cx="324.5" cy="469.0" r="2.7"/><line class="bp-line" x1="324.5" y1="469.0" x2="324.9" y2="493.0" stroke-width="3.4"/><circle class="bp" cx="324.9" cy="493.0" r="1.7"/><line class="bp-line" x1="324.9" y1="493.0" x2="325.4" y2="508.0" stroke-width="2.4"/><circle class="bp" cx="325.4" cy="508.0" r="1.2"/><line class="bp-line" x1="325.4" y1="508.0" x2="325.8" y2="518.0" stroke-width="1.7"/><circle class="bp" cx="325.8" cy="518.0" r="1.0"/><line class="bp-line" x1="324.2" y1="463.0" x2="334.0" y2="469.0" stroke-width="4.2"/><circle class="bp" cx="334.0" cy="469.0" r="2.3"/><line class="bp-line" x1="334.0" y1="469.0" x2="335.4" y2="488.0" stroke-width="3.0"/><circle class="bp" cx="335.4" cy="488.0" r="1.5"/><line class="bp-line" x1="335.4" y1="488.0" x2="336.8" y2="500.0" stroke-width="2.1"/><circle class="bp" cx="336.8" cy="500.0" r="1.0"/><line class="bp-line" x1="336.8" y1="500.0" x2="337.9" y2="509.0" stroke-width="1.5"/><circle class="bp" cx="337.9" cy="509.0" r="0.8"/><line class="bp-line" x1="316.0" y1="461.0" x2="303.0" y2="471.0" stroke-width="5.2"/><circle class="bp" cx="303.0" cy="471.0" r="3.1"/><line class="bp-line" x1="303.0" y1="471.0" x2="293.0" y2="482.0" stroke-width="4.2"/><circle class="bp" cx="293.0" cy="482.0" r="2.6"/><line class="bp-line" x1="293.0" y1="482.0" x2="286.0" y2="491.0" stroke-width="3.3"/><circle class="bp" cx="286.0" cy="491.0" r="2.0"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="femur" onclick="selectBone('femur')"><line class="bp-line" x1="162.0" y1="420.0" x2="170.0" y2="620.0" stroke-width="20.0"/><circle class="bp" cx="162.0" cy="420.0" r="15.0"/><circle class="bp" cx="160.5" cy="620.4" r="13.3"/><circle class="bp" cx="179.5" cy="619.6" r="13.3"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="femur" onclick="selectBone('femur')"><line class="bp-line" x1="238.0" y1="420.0" x2="230.0" y2="620.0" stroke-width="20.0"/><circle class="bp" cx="238.0" cy="420.0" r="15.0"/><circle class="bp" cx="220.5" cy="619.6" r="13.3"/><circle class="bp" cx="239.5" cy="620.4" r="13.3"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="patela" onclick="selectBone('patela')"><path class="bp" d="M162,626 Q170,618 178,626 L176,640 Q170.0,646 164,640 Z"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="patela" onclick="selectBone('patela')"><path class="bp" d="M222,626 Q230,618 238,626 L236,640 Q230.0,646 224,640 Z"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="tibia" onclick="selectBone('tibia')"><line class="bp-line" x1="166.0" y1="638.0" x2="164.0" y2="805.0" stroke-width="15.5"/><circle class="bp" cx="166.0" cy="638.0" r="10.5"/><circle class="bp" cx="164.0" cy="805.0" r="9.5"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="fibula" onclick="selectBone('fibula')"><line class="bp-line" x1="180.0" y1="642.0" x2="177.0" y2="801.0" stroke-width="6.4"/><circle class="bp" cx="180.0" cy="642.0" r="5.2"/><circle class="bp" cx="177.0" cy="801.0" r="5.2"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="tibia" onclick="selectBone('tibia')"><line class="bp-line" x1="234.0" y1="638.0" x2="236.0" y2="805.0" stroke-width="15.5"/><circle class="bp" cx="234.0" cy="638.0" r="10.5"/><circle class="bp" cx="236.0" cy="805.0" r="9.5"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="fibula" onclick="selectBone('fibula')"><line class="bp-line" x1="220.0" y1="642.0" x2="223.0" y2="801.0" stroke-width="6.4"/><circle class="bp" cx="220.0" cy="642.0" r="5.2"/><circle class="bp" cx="223.0" cy="801.0" r="5.2"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="tulang-kaki" onclick="selectBone('tulang-kaki')"><ellipse class="bp" cx="162.0" cy="818.0" rx="9.0" ry="12.0"/><circle class="bp" cx="160.0" cy="825.0" r="4.4"/><circle class="bp" cx="157.0" cy="817.0" r="4.0"/><circle class="bp" cx="162.0" cy="810.0" r="3.8"/><circle class="bp" cx="166.0" cy="821.0" r="3.6"/><line class="bp-line" x1="160.0" y1="823.0" x2="153.6" y2="829.0" stroke-width="4.8"/><circle class="bp" cx="153.6" cy="829.0" r="2.3"/><line class="bp-line" x1="153.6" y1="829.0" x2="151.2" y2="842.0" stroke-width="2.6"/><circle class="bp" cx="151.2" cy="842.0" r="1.2"/><line class="bp-line" x1="151.2" y1="842.0" x2="150.0" y2="848.0" stroke-width="1.7"/><circle class="bp" cx="150.0" cy="848.0" r="1.0"/><line class="bp-line" x1="162.2" y1="823.0" x2="159.4" y2="829.0" stroke-width="5.2"/><circle class="bp" cx="159.4" cy="829.0" r="2.5"/><line class="bp-line" x1="159.4" y1="829.0" x2="158.4" y2="845.0" stroke-width="2.9"/><circle class="bp" cx="158.4" cy="845.0" r="1.3"/><line class="bp-line" x1="158.4" y1="845.0" x2="157.9" y2="852.0" stroke-width="1.9"/><circle class="bp" cx="157.9" cy="852.0" r="1.1"/><line class="bp-line" x1="164.5" y1="823.0" x2="165.3" y2="829.0" stroke-width="5.0"/><circle class="bp" cx="165.3" cy="829.0" r="2.4"/><line class="bp-line" x1="165.3" y1="829.0" x2="165.6" y2="846.0" stroke-width="2.8"/><circle class="bp" cx="165.6" cy="846.0" r="1.3"/><line class="bp-line" x1="165.6" y1="846.0" x2="165.8" y2="853.0" stroke-width="1.8"/><circle class="bp" cx="165.8" cy="853.0" r="1.1"/><line class="bp-line" x1="166.8" y1="823.0" x2="171.2" y2="829.0" stroke-width="4.5"/><circle class="bp" cx="171.2" cy="829.0" r="2.2"/><line class="bp-line" x1="171.2" y1="829.0" x2="172.8" y2="844.0" stroke-width="2.5"/><circle class="bp" cx="172.8" cy="844.0" r="1.2"/><line class="bp-line" x1="172.8" y1="844.0" x2="173.6" y2="850.0" stroke-width="1.6"/><circle class="bp" cx="173.6" cy="850.0" r="0.9"/><line class="bp-line" x1="168.8" y1="823.0" x2="176.3" y2="829.0" stroke-width="3.8"/><circle class="bp" cx="176.3" cy="829.0" r="1.8"/><line class="bp-line" x1="176.3" y1="829.0" x2="179.2" y2="840.0" stroke-width="2.1"/><circle class="bp" cx="179.2" cy="840.0" r="1.0"/><line class="bp-line" x1="179.2" y1="840.0" x2="180.6" y2="845.0" stroke-width="1.4"/><circle class="bp" cx="180.6" cy="845.0" r="0.8"/></g>
+<g class="bone-hotspot" data-category="apendikular" data-bone="tulang-kaki" onclick="selectBone('tulang-kaki')"><ellipse class="bp" cx="238.0" cy="818.0" rx="9.0" ry="12.0"/><circle class="bp" cx="240.0" cy="825.0" r="4.4"/><circle class="bp" cx="243.0" cy="817.0" r="4.0"/><circle class="bp" cx="238.0" cy="810.0" r="3.8"/><circle class="bp" cx="234.0" cy="821.0" r="3.6"/><line class="bp-line" x1="232.0" y1="823.0" x2="225.6" y2="829.0" stroke-width="4.8"/><circle class="bp" cx="225.6" cy="829.0" r="2.3"/><line class="bp-line" x1="225.6" y1="829.0" x2="223.2" y2="842.0" stroke-width="2.6"/><circle class="bp" cx="223.2" cy="842.0" r="1.2"/><line class="bp-line" x1="223.2" y1="842.0" x2="222.0" y2="848.0" stroke-width="1.7"/><circle class="bp" cx="222.0" cy="848.0" r="1.0"/><line class="bp-line" x1="234.2" y1="823.0" x2="231.4" y2="829.0" stroke-width="5.2"/><circle class="bp" cx="231.4" cy="829.0" r="2.5"/><line class="bp-line" x1="231.4" y1="829.0" x2="230.4" y2="845.0" stroke-width="2.9"/><circle class="bp" cx="230.4" cy="845.0" r="1.3"/><line class="bp-line" x1="230.4" y1="845.0" x2="229.9" y2="852.0" stroke-width="1.9"/><circle class="bp" cx="229.9" cy="852.0" r="1.1"/><line class="bp-line" x1="236.5" y1="823.0" x2="237.3" y2="829.0" stroke-width="5.0"/><circle class="bp" cx="237.3" cy="829.0" r="2.4"/><line class="bp-line" x1="237.3" y1="829.0" x2="237.6" y2="846.0" stroke-width="2.8"/><circle class="bp" cx="237.6" cy="846.0" r="1.3"/><line class="bp-line" x1="237.6" y1="846.0" x2="237.8" y2="853.0" stroke-width="1.8"/><circle class="bp" cx="237.8" cy="853.0" r="1.1"/><line class="bp-line" x1="238.8" y1="823.0" x2="243.2" y2="829.0" stroke-width="4.5"/><circle class="bp" cx="243.2" cy="829.0" r="2.2"/><line class="bp-line" x1="243.2" y1="829.0" x2="244.8" y2="844.0" stroke-width="2.5"/><circle class="bp" cx="244.8" cy="844.0" r="1.2"/><line class="bp-line" x1="244.8" y1="844.0" x2="245.6" y2="850.0" stroke-width="1.6"/><circle class="bp" cx="245.6" cy="850.0" r="0.9"/><line class="bp-line" x1="240.8" y1="823.0" x2="248.3" y2="829.0" stroke-width="3.8"/><circle class="bp" cx="248.3" cy="829.0" r="1.8"/><line class="bp-line" x1="248.3" y1="829.0" x2="251.2" y2="840.0" stroke-width="2.1"/><circle class="bp" cx="251.2" cy="840.0" r="1.0"/><line class="bp-line" x1="251.2" y1="840.0" x2="252.6" y2="845.0" stroke-width="1.4"/><circle class="bp" cx="252.6" cy="845.0" r="0.8"/></g>
+
+          </svg>
+        </div>
+        <div class="sim-counter">
+          <span>TERPINDAI</span><b id="scanCount">0</b>/17
+          <div class="bar"><i id="scanBar"></i></div>
+        </div>
+      </div>
+
+      <div class="specimen-card" id="specimenCard">
+        <div class="specimen-empty" id="emptyState">
+          <svg viewBox="0 0 24 24"><path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z"/><path d="M12 11v9M12 11L4 6.5M12 11l8-4.5"/></svg>
+          <p>Sentuh salah satu bagian rangka pada simulator untuk menampilkan kartu spesimen digitalnya di sini.</p>
+        </div>
+        <div class="specimen-content" id="specimenContent" style="display:none">
+          <div class="specimen-tag" id="specTag">SPESIMEN · AKSIAL</div>
+          <h3 id="specNama">—</h3>
+          <div class="specimen-latin" id="specLatin">—</div>
+          <div class="specimen-rows">
+            <div class="srow"><span>Kategori</span><b id="specKategori">—</b></div>
+            <div class="srow"><span>Jumlah</span><b id="specJumlah">—</b></div>
+            <div class="srow"><span>Lokasi</span><b id="specLokasi">—</b></div>
+          </div>
+          <div class="specimen-block"><span>Fungsi</span><p id="specFungsi">—</p></div>
+          <div class="specimen-block fakta"><span>Fakta Menarik</span><p id="specFakta">—</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.struktur-section .section-head{max-width:720px;}
+.subhead{display:flex;align-items:baseline;gap:12px;margin-bottom:28px;}
+.subhead .idx{font-family:var(--font-mono);font-size:12px;color:var(--phosphor);border:1px solid var(--line-strong);padding:4px 10px;border-radius:14px;}
+.subhead h3{font-size:22px;}
+.substack{margin-bottom:96px;}
+.substack:last-child{margin-bottom:0;}
+
+.diagram-wrap{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:36px;}
+.diagram-wrap svg{width:100%;height:auto;}
+.callout-dot{fill:var(--phosphor);stroke:var(--void);stroke-width:2;}
+.callout-num{font-family:var(--font-mono);font-size:10px;fill:var(--void);text-anchor:middle;font-weight:600;}
+.callout-list{display:flex;flex-direction:column;gap:16px;}
+.callout-row{display:flex;gap:14px;}
+.callout-badge{width:24px;height:24px;border-radius:50%;background:var(--phosphor-dim);color:var(--phosphor);font-family:var(--font-mono);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.callout-row b{display:block;font-size:15px;margin-bottom:3px;}
+.callout-row p{font-size:13.5px;color:var(--ink-dim);line-height:1.6;}
+
+.cell-grid,.klas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.cell-card,.klas-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:24px 20px;}
+.cell-card .tag,.klas-card .tag{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--amber);text-transform:uppercase;margin-bottom:10px;display:block;}
+.cell-card h4,.klas-card h4{font-size:16px;margin-bottom:8px;}
+.cell-card p,.klas-card p{font-size:13.5px;color:var(--ink-dim);line-height:1.65;}
+.klas-icon{width:40px;height:40px;margin-bottom:14px;}
+.klas-icon svg{width:100%;height:100%;stroke:var(--bone);fill:none;stroke-width:1.4;}
+.klas-icon svg .fill{fill:var(--bone);stroke:none;}
+
+.timeline{display:flex;justify-content:space-between;align-items:flex-start;position:relative;margin-top:20px;padding:0 6px;}
+.timeline::before{content:'';position:absolute;top:7px;left:6px;right:6px;height:2px;background:var(--line-strong);}
+.tl-point{position:relative;flex:1;text-align:center;padding:0 6px;}
+.tl-point i{width:16px;height:16px;border-radius:50%;background:var(--void);border:2px solid var(--phosphor);display:block;margin:0 auto 14px;position:relative;z-index:1;}
+.tl-point b{display:block;font-size:13.5px;margin-bottom:5px;}
+.tl-point span{font-size:12.5px;color:var(--ink-dim);line-height:1.5;display:block;}
+
+.growth-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;}
+.growth-text p{color:var(--ink-dim);font-size:15px;line-height:1.8;margin-bottom:16px;}
+
+.spine-wrap{display:grid;grid-template-columns:0.55fr 1fr;gap:48px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:40px;}
+.spine-diagram{max-width:220px;margin:0 auto;}
+.spine-diagram svg{width:100%;height:auto;}
+.vert-cervical{fill:var(--phosphor-bright);}
+.vert-thoracic{fill:var(--bone);}
+.vert-lumbar{fill:var(--amber);}
+.vert-sacral{fill:var(--ink-faint);}
+.curve-legend{display:flex;flex-direction:column;gap:18px;}
+.curve-item{display:flex;gap:14px;align-items:flex-start;}
+.curve-item .sw{width:14px;height:14px;border-radius:4px;flex-shrink:0;margin-top:3px;}
+.sw-cerv{background:var(--phosphor-bright);}
+.sw-thor{background:var(--bone);}
+.sw-lumb{background:var(--amber);}
+.sw-sac{background:var(--ink-faint);}
+.curve-item b{display:block;font-size:14.5px;margin-bottom:3px;}
+.curve-item span{font-size:13px;color:var(--ink-dim);line-height:1.5;}
+@media(max-width:900px){.spine-wrap{grid-template-columns:1fr;padding:28px;}.spine-diagram{max-width:180px;}}
+.growth-text b{color:var(--ink);font-weight:600;}
+
+@media(max-width:980px){
+  .diagram-wrap{grid-template-columns:1fr;}
+  .cell-grid,.klas-grid{grid-template-columns:repeat(2,1fr);}
+  .growth-grid{grid-template-columns:1fr;}
+}
+@media(max-width:560px){
+  .cell-grid,.klas-grid{grid-template-columns:1fr;}
+  .timeline{flex-direction:column;gap:20px;align-items:flex-start;}
+  .timeline::before{display:none;}
+}
+</style>
+
+<section class="section struktur-section" id="struktur">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Materi — Anatomi Mikroskopis</div>
+      <h2>Struktur & Klasifikasi Tulang</h2>
+      <p>Setiap tulang adalah jaringan hidup yang tersusun dari lapisan, sel, dan rongga dengan fungsinya masing-masing — bukan sekadar kerangka statis, melainkan organ yang terus tumbuh dan memperbarui dirinya sepanjang hidup.</p>
+    </div>
+
+    <div class="substack reveal">
+      <div class="subhead"><span class="idx">A</span><h3>Anatomi Tulang Panjang</h3></div>
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 320 380" xmlns="http://www.w3.org/2000/svg">
+          <path d="M118,30 Q160,14 202,30 Q214,55 198,88 L198,98 Q210,105 210,130 L210,300 Q210,315 195,315 L125,315 Q110,315 110,300 L110,130 Q110,105 122,98 L122,88 Q106,55 118,30 Z" fill="var(--bone)" opacity="0.92" stroke="var(--bone-shadow)" stroke-width="1"/>
+          <path d="M122,30 Q160,18 198,30 Q200,36 198,42 Q160,28 122,42 Q120,36 122,30 Z" fill="var(--phosphor)" opacity="0.55"/>
+          <g stroke="var(--bone-shadow)" stroke-width="0.8" opacity="0.6">
+            <line x1="128" y1="45" x2="150" y2="60"/>
+            <line x1="150" y1="42" x2="135" y2="70"/>
+            <line x1="170" y1="42" x2="185" y2="68"/>
+            <line x1="190" y1="48" x2="172" y2="62"/>
+            <line x1="140" y1="75" x2="160" y2="80"/>
+            <line x1="165" y1="75" x2="180" y2="82"/>
+          </g>
+          <line x1="112" y1="98" x2="208" y2="98" stroke="var(--phosphor)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8"/>
+          <rect x="150" y="130" width="20" height="170" fill="var(--void)" opacity="0.85"/>
+          <circle cx="155" cy="160" r="1.6" fill="var(--bone-dim)"/>
+          <circle cx="163" cy="180" r="1.6" fill="var(--bone-dim)"/>
+          <circle cx="157" cy="205" r="1.6" fill="var(--bone-dim)"/>
+          <circle cx="162" cy="230" r="1.6" fill="var(--bone-dim)"/>
+          <circle cx="156" cy="255" r="1.6" fill="var(--bone-dim)"/>
+          <circle cx="161" cy="278" r="1.6" fill="var(--bone-dim)"/>
+
+          <line x1="128" y1="200" x2="255" y2="200" stroke="var(--line-strong)" stroke-width="1" stroke-dasharray="3 3"/>
+          <circle cx="255" cy="200" r="46" fill="var(--bone)" opacity="0.92" stroke="var(--bone-shadow)" stroke-width="1"/>
+          <circle cx="255" cy="200" r="36" fill="var(--panel)"/>
+          <circle cx="255" cy="200" r="20" fill="var(--void)"/>
+          <circle cx="248" cy="195" r="1.8" fill="var(--bone-dim)"/>
+          <circle cx="260" cy="205" r="1.8" fill="var(--bone-dim)"/>
+          <circle cx="253" cy="208" r="1.8" fill="var(--bone-dim)"/>
+          <circle cx="262" cy="192" r="1.8" fill="var(--bone-dim)"/>
+          <text x="255" y="253" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-faint)">PENAMPANG DIAFISIS</text>
+
+          <circle class="callout-dot" cx="112" cy="200"/><text class="callout-num" x="112" y="204">1</text>
+          <circle class="callout-dot" cx="160" cy="24"/><text class="callout-num" x="160" y="28">2</text>
+          <circle class="callout-dot" cx="150" cy="55"/><text class="callout-num" x="150" y="59">3</text>
+          <circle class="callout-dot" cx="205" cy="98"/><text class="callout-num" x="205" y="102">4</text>
+          <circle class="callout-dot" cx="270" cy="172"/><text class="callout-num" x="270" y="176">5</text>
+          <circle class="callout-dot" cx="255" cy="200"/><text class="callout-num" x="255" y="204">6</text>
+          <circle class="callout-dot" cx="255" cy="222"/><text class="callout-num" x="255" y="226">7</text>
+        </svg>
+        <div class="callout-list">
+          <div class="callout-row"><div class="callout-badge">1</div><div><b>Periosteum</b><p>Membran pembungkus permukaan luar tulang, kaya pembuluh darah, saraf, dan sel osteoblas untuk pertumbuhan & perbaikan.</p></div></div>
+          <div class="callout-row"><div class="callout-badge">2</div><div><b>Kartilago Artikular</b><p>Lapisan tulang rawan licin yang melapisi permukaan sendi, meredam gesekan antar tulang saat bergerak.</p></div></div>
+          <div class="callout-row"><div class="callout-badge">3</div><div><b>Tulang Spons (Epifisis)</b><p>Jaringan berongga seperti sarang lebah di ujung tulang, ringan namun kuat menahan beban dari berbagai arah.</p></div></div>
+          <div class="callout-row"><div class="callout-badge">4</div><div><b>Lempeng Epifisis</b><p>Area tulang rawan tempat pertumbuhan panjang tulang terjadi pada anak & remaja, menutup di usia sekitar 18–25 tahun.</p></div></div>
+          <div class="callout-row"><div class="callout-badge">5</div><div><b>Tulang Kompak</b><p>Lapisan padat & keras yang membentuk dinding luar diafisis, tersusun dari unit-unit osteon (sistem Havers).</p></div></div>
+          <div class="callout-row"><div class="callout-badge">6</div><div><b>Rongga Sumsum</b><p>Rongga tengah diafisis berisi sumsum tulang kuning yang menyimpan cadangan lemak sebagai energi.</p></div></div>
+          <div class="callout-row"><div class="callout-badge">7</div><div><b>Endosteum</b><p>Lapisan tipis yang melapisi permukaan dalam rongga tulang, juga berperan dalam remodeling tulang.</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="substack reveal">
+      <div class="subhead"><span class="idx">B</span><h3>Sel-Sel Penyusun Tulang</h3></div>
+      <div class="cell-grid">
+        <div class="cell-card"><span class="tag">Pembentuk</span><h4>Osteoblas</h4><p>Sel muda yang mensekresikan matriks tulang (osteoid) kaya kolagen. Aktif di permukaan tulang yang sedang tumbuh atau memperbaiki diri.</p></div>
+        <div class="cell-card"><span class="tag">Pemelihara</span><h4>Osteosit</h4><p>Sel tulang dewasa yang terperangkap dalam matriks yang telah mengeras, menjaga jaringan tulang & mendeteksi tekanan mekanis.</p></div>
+        <div class="cell-card"><span class="tag">Penyerap</span><h4>Osteoklas</h4><p>Sel besar berinti banyak yang menyerap (resorpsi) jaringan tulang lama — kunci dari proses remodeling tulang.</p></div>
+        <div class="cell-card"><span class="tag">Sel Punca</span><h4>Osteoprogenitor</h4><p>Sel punca yang belum berdiferensiasi, siap berkembang menjadi osteoblas baru terutama saat penyembuhan fraktur.</p></div>
+      </div>
+    </div>
+
+    <div class="substack reveal">
+      <div class="subhead"><span class="idx">C</span><h3>Klasifikasi Tulang Berdasarkan Bentuk</h3></div>
+      <div class="klas-grid">
+        <div class="klas-card">
+          <div class="klas-icon"><svg viewBox="0 0 40 40"><circle class="fill" cx="9" cy="9" r="6"/><line x1="12" y1="12" x2="28" y2="28" stroke-width="5" stroke-linecap="round"/><circle class="fill" cx="31" cy="31" r="6"/></svg></div>
+          <span class="tag">Bentuk Tabung</span>
+          <h4>Tulang Panjang</h4>
+          <p>Lebih panjang dari lebarnya dengan dua ujung membulat, berfungsi sebagai pengungkit gerak. Contoh: femur, humerus, falang.</p>
+        </div>
+        <div class="klas-card">
+          <div class="klas-icon"><svg viewBox="0 0 40 40"><rect class="fill" x="9" y="9" width="22" height="22" rx="5"/></svg></div>
+          <span class="tag">Bentuk Kubus</span>
+          <h4>Tulang Pendek</h4>
+          <p>Panjang & lebarnya hampir sama, memberi stabilitas dengan gerakan terbatas. Contoh: tulang karpal & tarsal.</p>
+        </div>
+        <div class="klas-card">
+          <div class="klas-icon"><svg viewBox="0 0 40 40"><path class="fill" d="M6,16 Q20,6 34,14 Q30,22 34,28 Q20,34 6,24 Z"/></svg></div>
+          <span class="tag">Bentuk Lempeng</span>
+          <h4>Tulang Pipih</h4>
+          <p>Tipis & biasanya melengkung, memberi perlindungan luas & area perlekatan otot. Contoh: tengkorak, rusuk, skapula.</p>
+        </div>
+        <div class="klas-card">
+          <div class="klas-icon"><svg viewBox="0 0 40 40"><path class="fill" d="M12,7 Q24,5 30,13 Q35,18 28,24 Q30,33 20,32 Q10,35 8,26 Q4,20 12,7 Z"/></svg></div>
+          <span class="tag">Bentuk Kompleks</span>
+          <h4>Tulang Tak Beraturan</h4>
+          <p>Bentuk kompleks yang tak masuk kategori lain. Contoh: ruas tulang belakang, tulang wajah, tulang panggul.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="substack reveal">
+      <div class="growth-grid">
+        <div class="growth-text">
+          <p>Tulang terbentuk lewat dua mekanisme osifikasi: <b>osifikasi intramembranosa</b>, di mana tulang terbentuk langsung dari jaringan mesenkim (contoh: tulang pipih tengkorak), dan <b>osifikasi endokondral</b>, di mana tulang terbentuk dari model tulang rawan yang berangsur digantikan jaringan tulang (contoh: sebagian besar tulang panjang).</p>
+          <p>Sepanjang hidup, tulang terus mengalami <b>remodeling</b> — proses berkelanjutan di mana osteoklas menyerap jaringan tulang lama sementara osteoblas membentuk jaringan baru. Melalui proses ini, kerangka manusia diperbarui secara bertahap kurang lebih setiap satu dekade.</p>
+        </div>
+        <div>
+          <div class="timeline">
+            <div class="tl-point"><i></i><b>Lahir</b><span>±270 pusat osifikasi, banyak tulang masih berupa kartilago lunak.</span></div>
+            <div class="tl-point"><i></i><b>Masa Kanak</b><span>Lempeng epifisis aktif memanjangkan tulang secara bertahap.</span></div>
+            <div class="tl-point"><i></i><b>Remaja</b><span>Percepatan pertumbuhan tulang dipacu hormon pertumbuhan & hormon seks.</span></div>
+            <div class="tl-point"><i></i><b>Dewasa (±18–25 th)</b><span>Lempeng epifisis menutup menjadi garis epifisis; panjang tulang berhenti bertambah.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="substack reveal" style="margin-bottom:0">
+      <div class="subhead"><span class="idx">E</span><h3>Kurva Alami Tulang Belakang</h3></div>
+      <div class="spine-wrap">
+        <div class="spine-diagram">
+<svg viewBox="70 30 220 540" xmlns="http://www.w3.org/2000/svg">
+<rect class="bp vert-cervical" x="-8.5" y="-5.5" width="17.0" height="11.0" rx="3" transform="translate(152.7 58.0) rotate(0.0)"/>
+<rect class="bp vert-cervical" x="-8.5" y="-5.5" width="17.0" height="11.0" rx="3" transform="translate(156.4 73.0) rotate(0.0)"/>
+<rect class="bp vert-cervical" x="-8.5" y="-5.5" width="17.0" height="11.0" rx="3" transform="translate(159.6 88.0) rotate(0.0)"/>
+<rect class="bp vert-cervical" x="-8.5" y="-5.5" width="17.0" height="11.0" rx="3" transform="translate(162.2 103.0) rotate(0.0)"/>
+<rect class="bp vert-cervical" x="-8.5" y="-5.5" width="17.0" height="11.0" rx="3" transform="translate(162.9 118.0) rotate(0.0)"/>
+<rect class="bp vert-cervical" x="-8.5" y="-5.5" width="17.0" height="11.0" rx="3" transform="translate(161.5 133.0) rotate(0.0)"/>
+<rect class="bp vert-cervical" x="-8.5" y="-5.5" width="17.0" height="11.0" rx="3" transform="translate(158.0 148.0) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(153.6 158.0) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(143.8 174.7) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(134.4 191.5) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(125.9 208.2) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(120.2 224.9) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(117.9 241.6) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(119.6 258.4) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(124.5 275.1) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(132.6 291.8) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(142.4 308.5) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(153.3 325.3) rotate(0.0)"/>
+<rect class="bp vert-thoracic" x="-9.5" y="-5.2" width="19.0" height="10.5" rx="3" transform="translate(163.5 342.0) rotate(0.0)"/>
+<rect class="bp vert-lumbar" x="-12.0" y="-7.5" width="24.0" height="15.0" rx="3" transform="translate(168.7 352.0) rotate(0.0)"/>
+<rect class="bp vert-lumbar" x="-12.0" y="-7.5" width="24.0" height="15.0" rx="3" transform="translate(177.4 380.5) rotate(0.0)"/>
+<rect class="bp vert-lumbar" x="-12.0" y="-7.5" width="24.0" height="15.0" rx="3" transform="translate(176.0 409.0) rotate(0.0)"/>
+<rect class="bp vert-lumbar" x="-12.0" y="-7.5" width="24.0" height="15.0" rx="3" transform="translate(164.3 437.5) rotate(0.0)"/>
+<rect class="bp vert-lumbar" x="-12.0" y="-7.5" width="24.0" height="15.0" rx="3" transform="translate(147.4 466.0) rotate(0.0)"/>
+<path class="bp vert-sacral" d="M117,478 L149,478 L142,520 Q133,532 124,520 Z"/>
+<ellipse class="bp vert-sacral" cx="144.3" cy="538.0" rx="5" ry="8"/>
+</svg>
+        </div>
+        <div class="spine-info">
+          <p class="rangka-intro" style="margin-bottom:32px;">Dilihat dari samping, tulang belakang manusia bukan garis lurus — ia membentuk empat lengkungan alami yang berfungsi seperti pegas, menyerap guncangan setiap kali tubuh berjalan, berlari, atau melompat.</p>
+          <div class="curve-legend">
+            <div class="curve-item"><i class="sw sw-cerv"></i><div><b>Lordosis Servikal</b><span>7 ruas leher — melengkung ke depan, menopang kepala</span></div></div>
+            <div class="curve-item"><i class="sw sw-thor"></i><div><b>Kifosis Torakal</b><span>12 ruas dada — melengkung ke belakang, tempat rusuk melekat</span></div></div>
+            <div class="curve-item"><i class="sw sw-lumb"></i><div><b>Lordosis Lumbal</b><span>5 ruas pinggang — melengkung ke depan paling menonjol</span></div></div>
+            <div class="curve-item"><i class="sw sw-sac"></i><div><b>Kifosis Sakral</b><span>Sakrum & koksigis menyatu, melengkung ke belakang</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<style>
+.rangka-section{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.rangka-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.rangka-card{background:var(--void);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+.rangka-card-head{padding:22px 26px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+.rangka-card-head h3{font-size:17px;}
+.rangka-card-head b{font-family:var(--font-mono);color:var(--phosphor);font-size:13px;background:var(--phosphor-dim);padding:5px 12px;border-radius:14px;}
+.rangka-card.apendikular .rangka-card-head b{color:var(--amber);background:var(--amber-dim);}
+table.rtable{width:100%;border-collapse:collapse;}
+table.rtable td{padding:13px 26px;font-size:13.5px;border-bottom:1px solid var(--line);vertical-align:top;}
+table.rtable tr:last-of-type td{border-bottom:none;}
+table.rtable td.rt-bagian{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-faint);width:30%;padding-top:15px;}
+table.rtable td.rt-nama{color:var(--ink-dim);line-height:1.6;}
+table.rtable td.rt-jumlah{font-family:var(--font-mono);color:var(--ink);text-align:right;white-space:nowrap;width:60px;}
+table.rtable tfoot td{padding:16px 26px;font-family:var(--font-mono);font-weight:600;color:var(--phosphor);background:var(--phosphor-dim);border-bottom:none;}
+.rangka-card.apendikular tfoot td{color:var(--amber);background:var(--amber-dim);}
+table.rtable tfoot td.rt-jumlah{text-align:right;}
+.rangka-intro{max-width:760px;color:var(--ink-dim);font-size:16px;line-height:1.8;margin-bottom:48px;}
+.rangka-intro b{color:var(--ink);font-weight:600;}
+.landmark-block{margin-top:64px;padding-top:56px;border-top:1px solid var(--line);}
+.landmark-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.landmark-card{background:var(--void);border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px 20px;}
+.landmark-card b{font-family:var(--font-display);font-size:14.5px;color:var(--phosphor);display:block;margin-bottom:8px;}
+.landmark-card p{font-size:13px;color:var(--ink-dim);line-height:1.6;}
+@media(max-width:900px){.landmark-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.landmark-grid{grid-template-columns:1fr;}}
+@media(max-width:900px){.rangka-grid{grid-template-columns:1fr;}}
+@media(max-width:560px){table.rtable td{padding:12px 16px;}.rangka-card-head{padding:18px 16px;}}
+</style>
+
+<section class="section rangka-section" id="rangka">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Materi — Peta Rangka Tubuh</div>
+      <h2>Rangka Aksial & Apendikular</h2>
+      <p>Secara garis besar, 206 tulang tubuh manusia terbagi menjadi dua kelompok besar berdasarkan letak & fungsinya.</p>
+    </div>
+    <p class="rangka-intro reveal"><b>Rangka aksial</b> membentuk sumbu utama tubuh — kepala, leher, tulang belakang, dan dada — serta bertugas melindungi organ-organ vital. <b>Rangka apendikular</b> meliputi anggota gerak atas & bawah beserta gelang penghubungnya ke rangka aksial, yang memungkinkan tubuh bergerak & berpindah tempat.</p>
+
+    <div class="rangka-grid reveal">
+      <div class="rangka-card aksial">
+        <div class="rangka-card-head"><h3>Rangka Aksial</h3><b>80 TULANG</b></div>
+        <table class="rtable">
+          <tbody>
+            <tr><td class="rt-bagian">Tengkorak — Kranium</td><td class="rt-nama">Os frontal, parietal, temporal, oksipital, sfenoid, etmoid</td><td class="rt-jumlah">8</td></tr>
+            <tr><td class="rt-bagian">Tengkorak — Wajah</td><td class="rt-nama">Maksila, zigomatikum, nasal, lakrimal, palatinum, konka nasalis inferior, vomer, mandibula</td><td class="rt-jumlah">14</td></tr>
+            <tr><td class="rt-bagian">Telinga Tengah</td><td class="rt-nama">Maleus, inkus, stapes (tiap sisi telinga)</td><td class="rt-jumlah">6</td></tr>
+            <tr><td class="rt-bagian">Leher</td><td class="rt-nama">Tulang hyoid</td><td class="rt-jumlah">1</td></tr>
+            <tr><td class="rt-bagian">Tulang Belakang</td><td class="rt-nama">Servikal (7), torakal (12), lumbal (5), sakrum (1), koksigis (1)</td><td class="rt-jumlah">26</td></tr>
+            <tr><td class="rt-bagian">Dada</td><td class="rt-nama">Sternum</td><td class="rt-jumlah">1</td></tr>
+            <tr><td class="rt-bagian">Dada</td><td class="rt-nama">Tulang rusuk / costae (12 pasang)</td><td class="rt-jumlah">24</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="2">Total Rangka Aksial</td><td class="rt-jumlah">80</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="rangka-card apendikular">
+        <div class="rangka-card-head"><h3>Rangka Apendikular</h3><b>126 TULANG</b></div>
+        <table class="rtable">
+          <tbody>
+            <tr><td class="rt-bagian">Gelang Bahu</td><td class="rt-nama">Klavikula (2), skapula (2)</td><td class="rt-jumlah">4</td></tr>
+            <tr><td class="rt-bagian">Lengan Atas</td><td class="rt-nama">Humerus (kiri & kanan)</td><td class="rt-jumlah">2</td></tr>
+            <tr><td class="rt-bagian">Lengan Bawah</td><td class="rt-nama">Radius & ulna (kiri & kanan)</td><td class="rt-jumlah">4</td></tr>
+            <tr><td class="rt-bagian">Tangan</td><td class="rt-nama">Karpal (16), metakarpal (10), falang (28)</td><td class="rt-jumlah">54</td></tr>
+            <tr><td class="rt-bagian">Gelang Panggul</td><td class="rt-nama">Os coxae — gabungan ilium, iskium & pubis</td><td class="rt-jumlah">2</td></tr>
+            <tr><td class="rt-bagian">Paha</td><td class="rt-nama">Femur (kiri & kanan)</td><td class="rt-jumlah">2</td></tr>
+            <tr><td class="rt-bagian">Lutut</td><td class="rt-nama">Patela (kiri & kanan)</td><td class="rt-jumlah">2</td></tr>
+            <tr><td class="rt-bagian">Tungkai Bawah</td><td class="rt-nama">Tibia & fibula (kiri & kanan)</td><td class="rt-jumlah">4</td></tr>
+            <tr><td class="rt-bagian">Kaki</td><td class="rt-nama">Tarsal (14), metatarsal (10), falang (28)</td><td class="rt-jumlah">52</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="2">Total Rangka Apendikular</td><td class="rt-jumlah">126</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="landmark-block reveal">
+      <div class="subhead"><span class="idx">+</span><h3>Landmark Anatomis Tulang</h3></div>
+      <p class="rangka-intro" style="margin-bottom:28px;">Beberapa titik pada tulang cukup menonjol untuk diraba langsung dari permukaan kulit. Titik-titik ini disebut <b>landmark anatomis</b>, dan sering dipakai sebagai acuan dalam pemeriksaan fisik, olahraga, maupun tindakan medis darurat.</p>
+      <div class="landmark-grid">
+        <div class="landmark-card"><b>Akromion</b><p>Ujung luar tulang belikat yang membentuk titik tertinggi bahu — mudah diraba di puncak pundak.</p></div>
+        <div class="landmark-card"><b>Olekranon</b><p>Ujung atas tulang hasta yang menonjol saat siku ditekuk; itulah bagian "siku" yang kita rasakan.</p></div>
+        <div class="landmark-card"><b>Krista Iliaka</b><p>Tepi atas tulang panggul yang bisa diraba di pinggang, sering jadi acuan pengukuran & suntikan.</p></div>
+        <div class="landmark-card"><b>Prosesus Xiphoideus</b><p>Ujung bawah tulang dada yang lancip — titik acuan penting saat kompresi dada (RJP/CPR).</p></div>
+        <div class="landmark-card"><b>Maleolus</b><p>Dua tonjolan tulang di kanan-kiri mata kaki: maleolus medial dari tibia, maleolus lateral dari fibula.</p></div>
+        <div class="landmark-card"><b>Patela</b><p>Tempurung lutut yang menonjol jelas di permukaan depan sendi lutut.</p></div>
+        <div class="landmark-card"><b>Vertebra Prominens</b><p>Ruas tulang belakang C7 yang menonjol paling jelas di pangkal leher belakang saat kepala ditundukkan.</p></div>
+        <div class="landmark-card"><b>Tuberositas Tibia</b><p>Benjolan tulang tepat di bawah lutut, tempat melekatnya tendon patela.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.gerak-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:56px;}
+.gerak-card{border:1px solid var(--line);border-radius:var(--radius-sm);padding:20px 22px;background:var(--panel);}
+.gerak-card b{display:block;font-family:var(--font-display);font-size:15px;margin-bottom:6px;}
+.gerak-card span{font-family:var(--font-mono);font-size:10px;color:var(--phosphor);letter-spacing:0.06em;text-transform:uppercase;}
+.gerak-card p{font-size:13.5px;color:var(--ink-dim);margin-top:8px;line-height:1.6;}
+
+.sendi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.sendi-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:26px 22px;}
+.sendi-icon{width:36px;height:36px;color:var(--phosphor);margin-bottom:16px;}
+.sendi-icon svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+.sendi-card h4{font-size:16px;margin-bottom:3px;}
+.sendi-card .latin{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-faint);letter-spacing:0.04em;margin-bottom:12px;display:block;}
+.sendi-card p{font-size:13.5px;color:var(--ink-dim);line-height:1.65;margin-bottom:10px;}
+.sendi-card .contoh{font-size:12.5px;color:var(--ink);background:var(--void);border-radius:8px;padding:8px 12px;font-family:var(--font-mono);}
+.sendi-card .contoh b{color:var(--amber);font-weight:500;}
+
+.knee-block{margin-top:64px;padding-top:56px;border-top:1px solid var(--line);}
+.knee-wrap{display:grid;grid-template-columns:0.6fr 1fr;gap:48px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:40px;align-items:center;}
+.knee-diagram{max-width:200px;margin:0 auto;}
+.knee-diagram svg{width:100%;height:auto;}
+.knee-key{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--line);}
+.key-item{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);letter-spacing:0.03em;}
+.key-item .sw{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.sw-bone{background:var(--bone);}
+.sw-cart{background:rgba(169,232,245,0.6);border:1px solid rgba(169,232,245,0.8);}
+.sw-lig{background:var(--amber);}
+.knee-list{display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;}
+.knee-row b{display:block;font-size:14.5px;margin-bottom:4px;color:var(--ink);}
+.knee-row p{font-size:13px;color:var(--ink-dim);line-height:1.6;}
+@media(max-width:900px){.knee-wrap{grid-template-columns:1fr;padding:28px;}.knee-diagram{max-width:170px;}.knee-list{grid-template-columns:1fr;}}
+@media(max-width:900px){.gerak-row,.sendi-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.gerak-row,.sendi-grid{grid-template-columns:1fr;}}
+</style>
+
+<section class="section" id="sendi">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Materi — Titik Pertemuan Tulang</div>
+      <h2>Persendian (Artikulasi)</h2>
+      <p>Sendi adalah titik pertemuan antar dua tulang atau lebih. Jenis sendi menentukan seberapa jauh dan ke arah mana bagian tubuh itu bisa digerakkan.</p>
+    </div>
+
+    <div class="gerak-row reveal">
+      <div class="gerak-card"><span>Tanpa Gerak</span><b>Sinartrosis</b><p>Sendi mati yang nyaris tak memiliki jarak gerak. Contoh: sutura antar tulang tengkorak.</p></div>
+      <div class="gerak-card"><span>Gerak Terbatas</span><b>Amfiartrosis</b><p>Dihubungkan kartilago sehingga hanya bisa bergerak sedikit. Contoh: antar ruas tulang belakang, simfisis pubis.</p></div>
+      <div class="gerak-card"><span>Gerak Bebas</span><b>Diartrosis</b><p>Dikenal juga sebagai sendi sinovial — memiliki rongga berisi cairan pelumas dan mampu bergerak paling leluasa.</p></div>
+    </div>
+
+    <div class="sendi-grid reveal">
+      <div class="sendi-card">
+        <div class="sendi-icon"><svg viewBox="0 0 32 32"><path d="M8,6 L8,26"/><path d="M8,16 L26,8"/><circle cx="8" cy="16" r="2" fill="currentColor" stroke="none"/></svg></div>
+        <h4>Sendi Engsel</h4><span class="latin">Hinge Joint</span>
+        <p>Gerakan satu bidang layaknya engsel pintu — hanya menekuk & meluruskan.</p>
+        <div class="contoh"><b>Contoh —</b> siku, lutut, ruas jari</div>
+      </div>
+      <div class="sendi-card">
+        <div class="sendi-icon"><svg viewBox="0 0 32 32"><path d="M6,24 Q6,30 16,31 Q26,30 26,24"/><circle cx="16" cy="15" r="9"/></svg></div>
+        <h4>Sendi Peluru</h4><span class="latin">Ball-and-Socket</span>
+        <p>Kepala tulang bulat masuk ke rongga soket — gerakan paling bebas ke segala arah.</p>
+        <div class="contoh"><b>Contoh —</b> bahu, panggul</div>
+      </div>
+      <div class="sendi-card">
+        <div class="sendi-icon"><svg viewBox="0 0 32 32"><path d="M5,22 Q16,8 27,22"/><path d="M5,12 Q16,26 27,12"/></svg></div>
+        <h4>Sendi Pelana</h4><span class="latin">Saddle Joint</span>
+        <p>Dua permukaan saling melengkung seperti pelana kuda yang bertumpuk, gerak dua arah.</p>
+        <div class="contoh"><b>Contoh —</b> pangkal ibu jari</div>
+      </div>
+      <div class="sendi-card">
+        <div class="sendi-icon"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="10" stroke-dasharray="3 3.5"/><circle cx="16" cy="16" r="2.2" fill="currentColor" stroke="none"/><path d="M24,9 L27,7 L27,11"/></svg></div>
+        <h4>Sendi Putar</h4><span class="latin">Pivot Joint</span>
+        <p>Satu tulang berputar mengelilingi tulang lain yang menjadi poros/aksis.</p>
+        <div class="contoh"><b>Contoh —</b> ruas leher atlas-aksis</div>
+      </div>
+      <div class="sendi-card">
+        <div class="sendi-icon"><svg viewBox="0 0 32 32"><rect x="5" y="10" width="22" height="6" rx="2"/><rect x="5" y="18" width="22" height="6" rx="2"/><path d="M29,13 L32,13 M29,13 L30,11.5 M29,13 L30,14.5"/></svg></div>
+        <h4>Sendi Luncur</h4><span class="latin">Gliding Joint</span>
+        <p>Permukaan tulang relatif datar yang saling bergeser satu sama lain.</p>
+        <div class="contoh"><b>Contoh —</b> antar tulang pergelangan</div>
+      </div>
+      <div class="sendi-card">
+        <div class="sendi-icon"><svg viewBox="0 0 32 32"><ellipse cx="16" cy="13" rx="9" ry="6"/><path d="M4,23 Q16,31 28,23"/></svg></div>
+        <h4>Sendi Kondiloid</h4><span class="latin">Condyloid Joint</span>
+        <p>Permukaan oval satu tulang masuk ke lekukan oval tulang lain, gerak dua arah tanpa rotasi.</p>
+        <div class="contoh"><b>Contoh —</b> pergelangan tangan</div>
+      </div>
+    </div>
+
+    <div class="knee-block reveal">
+      <div class="subhead"><span class="idx">+</span><h3>Studi Kasus: Anatomi Sendi Lutut</h3></div>
+      <p class="rangka-intro" style="margin-bottom:32px;">Lutut adalah sendi terbesar & salah satu yang paling kompleks di tubuh manusia — mempertemukan femur, tibia, dan patela, disatukan oleh jaringan ligamen dan diredam oleh bantalan kartilago.</p>
+      <div class="knee-wrap">
+        <div class="knee-diagram">
+<svg viewBox="70 0 180 340" xmlns="http://www.w3.org/2000/svg">
+<path class="bp" d="M148,18 L172,18 L176,95 Q176,108 168,116 L160,120 L152,116 Q144,108 144,95 Z"/>
+<circle class="bp" cx="128.0" cy="148.0" r="30.0"/>
+<circle class="bp" cx="192.0" cy="148.0" r="30.0"/>
+<path class="bp" d="M128,118 Q160,108 192,118 L192,140 Q160,128 128,140 Z"/>
+<path class="bp" d="M132,196 L188,196 L182,230 L178,320 L168,326 L164,232 L156,232 L152,326 L142,320 L138,230 Z"/>
+<path class="bp" d="M206,206 C216,206 222,214 220,226 L214,300 L204,300 L200,220 Z"/>
+<path class="cart" d="M104,168 Q100,180 108,192 Q124,200 144,194 Q136,180 138,168 Q120,162 104,168 Z"/>
+<path class="cart" d="M216,168 Q220,180 212,192 Q196,200 176,194 Q184,180 182,168 Q200,162 216,168 Z"/>
+<path class="lig" d="M148,120 L172,192" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path class="lig" d="M172,120 L148,192" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path class="lig" d="M100,130 Q92,170 98,214" stroke-width="8" fill="none" stroke-linecap="round"/>
+<path class="lig" d="M220,130 Q228,170 222,210" stroke-width="8" fill="none" stroke-linecap="round"/>
+<path class="patella" d="M160,132 Q182,138 180,162 Q178,182 160,190 Q142,182 140,162 Q138,138 160,132 Z"/>
+<path class="lig" d="M160,188 L160,226" stroke-width="12" fill="none" stroke-linecap="round"/>
+<circle class="bp" cx="160.0" cy="232.0" r="7.0"/>
+</svg>
+        </div>
+        <div class="knee-info">
+          <div class="knee-key">
+            <div class="key-item"><i class="sw sw-bone"></i>Tulang</div>
+            <div class="key-item"><i class="sw sw-cart"></i>Kartilago / Meniskus</div>
+            <div class="key-item"><i class="sw sw-lig"></i>Ligamen & Tendon</div>
+          </div>
+          <div class="knee-list">
+            <div class="knee-row"><b>Femur, Tibia & Fibula</b><p>Tiga tulang yang bertemu membentuk rangka utama sendi lutut.</p></div>
+            <div class="knee-row"><b>Patela</b><p>Tulang sesamoid yang melindungi bagian depan sendi & mengungkit otot paha depan.</p></div>
+            <div class="knee-row"><b>Meniskus Medial & Lateral</b><p>Bantalan kartilago berbentuk C yang meredam benturan antara femur & tibia.</p></div>
+            <div class="knee-row"><b>ACL & PCL</b><p>Ligamen krusiatum anterior & posterior yang menyilang di dalam sendi, menjaga stabilitas gerak maju-mundur.</p></div>
+            <div class="knee-row"><b>MCL & LCL</b><p>Ligamen kolateral medial & lateral yang menstabilkan sendi dari sisi kanan-kiri.</p></div>
+            <div class="knee-row"><b>Tendon Patela</b><p>Menghubungkan patela ke tuberositas tibia, meneruskan tenaga otot paha depan ke tungkai bawah.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.kelainan-section{background:linear-gradient(180deg, transparent, rgba(237,168,95,0.03) 50%, transparent);}
+.kelainan-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.kelainan-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:24px 22px;border-top:2px solid var(--amber);}
+.kelainan-card .tag{font-family:var(--font-mono);font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--amber);background:var(--amber-dim);padding:4px 10px;border-radius:12px;display:inline-block;margin-bottom:14px;}
+.kelainan-card h4{font-size:16.5px;margin-bottom:10px;}
+.kelainan-card p{font-size:13.5px;color:var(--ink-dim);line-height:1.65;}
+.disclaimer{margin-top:40px;padding:16px 22px;border:1px solid var(--line);border-radius:12px;font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);line-height:1.7;}
+@media(max-width:980px){.kelainan-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.kelainan-grid{grid-template-columns:1fr;}}
+</style>
+
+<section class="section kelainan-section" id="kelainan">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Materi — Saat Sistem Gagal Bekerja</div>
+      <h2>Kelainan pada Sistem Rangka</h2>
+      <p>Sejumlah kondisi dapat mengganggu kepadatan, bentuk, atau struktur tulang — mulai dari faktor usia, nutrisi, trauma, hingga infeksi.</p>
+    </div>
+    <div class="kelainan-grid reveal">
+      <div class="kelainan-card"><span class="tag">Degeneratif</span><h4>Osteoporosis</h4><p>Penurunan kepadatan & massa tulang membuat tulang rapuh dan mudah patah. Sering dialami lansia, terutama wanita pasca-menopause, akibat penurunan hormon estrogen serta kekurangan kalsium & vitamin D.</p></div>
+      <div class="kelainan-card"><span class="tag">Trauma</span><h4>Fraktur</h4><p>Patah atau retaknya jaringan tulang akibat benturan/tekanan berlebih. Meliputi fraktur sederhana, fraktur terbuka (menembus kulit), fraktur greenstick (retak sebagian, umum pada anak), dan fraktur kominutif (pecah jadi banyak fragmen).</p></div>
+      <div class="kelainan-card"><span class="tag">Peradangan Sendi</span><h4>Artritis</h4><p>Peradangan sendi yang menimbulkan nyeri & kekakuan. Osteoartritis disebabkan ausnya kartilago sendi seiring usia, sementara artritis reumatoid adalah penyakit autoimun yang menyerang membran sinovial.</p></div>
+      <div class="kelainan-card"><span class="tag">Struktural</span><h4>Skoliosis</h4><p>Kelengkungan tulang belakang ke arah samping (lateral) yang tidak normal, membuat postur tubuh tampak miring atau tidak simetris.</p></div>
+      <div class="kelainan-card"><span class="tag">Struktural</span><h4>Kifosis & Lordosis</h4><p>Kifosis adalah kelengkungan berlebih ke belakang di punggung atas (punggung bungkuk); lordosis adalah kelengkungan berlebih ke depan di area pinggang.</p></div>
+      <div class="kelainan-card"><span class="tag">Defisiensi Nutrisi</span><h4>Rakitis & Osteomalasia</h4><p>Pelunakan & pelemahan tulang akibat kekurangan vitamin D, kalsium, atau fosfat. Disebut rakitis pada anak (dapat menyebabkan kaki bengkok) dan osteomalasia pada orang dewasa.</p></div>
+      <div class="kelainan-card"><span class="tag">Infeksi</span><h4>Osteomielitis</h4><p>Infeksi pada jaringan tulang, umumnya disebabkan bakteri yang masuk lewat aliran darah, luka terbuka, atau prosedur operasi.</p></div>
+      <div class="kelainan-card"><span class="tag">Onkologis</span><h4>Osteosarkoma</h4><p>Jenis kanker tulang primer paling umum, paling sering menyerang tulang panjang pada anak-anak & dewasa muda yang sedang tumbuh pesat.</p></div>
+    </div>
+    <p class="disclaimer reveal">⚠ INFORMASI DI ATAS BERSIFAT EDUKATIF DAN TIDAK DIMAKSUDKAN SEBAGAI DIAGNOSIS MEDIS. UNTUK KELUHAN KESEHATAN, KONSULTASIKAN LANGSUNG KE DOKTER ATAU TENAGA MEDIS PROFESIONAL.</p>
+  </div>
+</section>
+
+<style>
+.kesehatan-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:44px;}
+.kesehatan-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:22px 18px;text-align:center;}
+.kesehatan-icon{width:38px;height:38px;margin:0 auto 14px;color:var(--phosphor);}
+.kesehatan-icon svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.kesehatan-card h4{font-size:14.5px;margin-bottom:8px;}
+.kesehatan-card p{font-size:12.5px;color:var(--ink-dim);line-height:1.6;}
+.risk-row{display:flex;gap:12px;flex-wrap:wrap;}
+.risk-chip{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);background:var(--void);border:1px solid var(--line-strong);padding:9px 16px;border-radius:20px;}
+.risk-chip b{color:var(--wrong);}
+@media(max-width:980px){.kesehatan-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:600px){.kesehatan-grid{grid-template-columns:1fr 1fr;}}
+</style>
+
+<section class="section" id="kesehatan">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="eyebrow">Materi — Menjaga Kepadatan Tulang</div>
+      <h2>Nutrisi & Kesehatan Tulang</h2>
+      <p>Kepadatan tulang manusia mencapai puncaknya di sekitar usia 25–30 tahun, lalu perlahan menurun seiring usia. Pola makan & gaya hidup berperan besar dalam menjaga kekuatannya sepanjang hidup.</p>
+    </div>
+    <div class="kesehatan-grid reveal">
+      <div class="kesehatan-card">
+        <div class="kesehatan-icon"><svg viewBox="0 0 24 24"><path d="M12 2c-4 4-7 8-7 12a7 7 0 0 0 14 0c0-4-3-8-7-12z"/></svg></div>
+        <h4>Kalsium</h4>
+        <p>Mineral utama penyusun matriks tulang. Sumber: susu, ikan teri, tahu, tempe, sayuran hijau.</p>
+      </div>
+      <div class="kesehatan-card">
+        <div class="kesehatan-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></div>
+        <h4>Vitamin D</h4>
+        <p>Membantu penyerapan kalsium di usus. Sumber: sinar matahari pagi, ikan berlemak, kuning telur.</p>
+      </div>
+      <div class="kesehatan-card">
+        <div class="kesehatan-icon"><svg viewBox="0 0 24 24"><path d="M12 21c4-3 7-6.5 7-10.5A5 5 0 0 0 12 6a5 5 0 0 0-7 4.5C5 14.5 8 18 12 21z"/></svg></div>
+        <h4>Protein</h4>
+        <p>Membentuk kolagen — kerangka lentur tempat mineral tulang menempel & terikat kuat.</p>
+      </div>
+      <div class="kesehatan-card">
+        <div class="kesehatan-icon"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.2H22l-6 4.4 2.4 7.2L12 16.4 5.6 20.8 8 13.6 2 9.2h7.6z"/></svg></div>
+        <h4>Magnesium & Vit. K</h4>
+        <p>Berperan dalam mineralisasi tulang dan mengatur protein pengikat kalsium.</p>
+      </div>
+      <div class="kesehatan-card">
+        <div class="kesehatan-icon"><svg viewBox="0 0 24 24"><path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"/></svg></div>
+        <h4>Aktivitas Fisik</h4>
+        <p>Olahraga menahan beban seperti jalan cepat, lari, & latihan beban merangsang osteoblas membentuk tulang lebih padat.</p>
+      </div>
+    </div>
+    <div class="risk-row reveal">
+      <div class="risk-chip"><b>⚠</b> Merokok</div>
+      <div class="risk-chip"><b>⚠</b> Konsumsi alkohol berlebih</div>
+      <div class="risk-chip"><b>⚠</b> Gaya hidup kurang gerak (sedentari)</div>
+      <div class="risk-chip"><b>⚠</b> Asupan kalsium & vitamin D rendah</div>
+      <div class="risk-chip"><b>⚠</b> Kadar hormon estrogen rendah (pasca-menopause)</div>
+    </div>
+  </div>
+</section>
+
+<style>
+:root{--wrong:#e8748a;--wrong-dim:rgba(232,116,138,0.14);}
+.quiz-section{padding-bottom:140px;}
+.quiz-card{max-width:680px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:38px 40px;}
+.quiz-progress-row{display:flex;align-items:center;gap:16px;margin-bottom:32px;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-faint);letter-spacing:0.05em;}
+.quiz-progress-bar{flex:1;height:4px;background:var(--panel-2);border-radius:4px;overflow:hidden;}
+.quiz-progress-bar i{display:block;height:100%;width:10%;background:var(--phosphor);transition:width .35s ease;}
+.quiz-score{color:var(--phosphor);white-space:nowrap;}
+.quiz-question{font-size:20px;margin-bottom:26px;line-height:1.5;font-family:var(--font-display);font-weight:600;}
+.quiz-options{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+.quiz-opt{
+  text-align:left;background:var(--void);border:1px solid var(--line-strong);color:var(--ink);
+  padding:15px 18px;border-radius:12px;font-size:14.5px;font-family:var(--font-body);
+  display:flex;align-items:center;gap:12px;transition:all .15s ease;
+}
+.quiz-opt .opt-letter{font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);width:20px;height:20px;border:1px solid var(--line-strong);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.quiz-opt:hover:not(:disabled){border-color:var(--phosphor);background:var(--panel-2);}
+.quiz-opt.correct{border-color:var(--phosphor);background:var(--phosphor-dim);}
+.quiz-opt.correct .opt-letter{background:var(--phosphor);color:var(--void);border-color:var(--phosphor);}
+.quiz-opt.incorrect{border-color:var(--wrong);background:var(--wrong-dim);}
+.quiz-opt.incorrect .opt-letter{background:var(--wrong);color:var(--void);border-color:var(--wrong);}
+.quiz-opt:disabled{cursor:default;}
+.quiz-feedback{font-size:14px;color:var(--ink-dim);line-height:1.65;padding:16px 18px;border-radius:12px;background:var(--void);margin-bottom:22px;border-left:3px solid var(--phosphor);}
+.quiz-feedback.wrong{border-left-color:var(--wrong);}
+.quiz-actions{display:flex;justify-content:flex-end;}
+.quiz-result{text-align:center;padding:20px 0;}
+.quiz-score-ring{width:132px;height:132px;border-radius:50%;border:3px solid var(--line-strong);display:flex;align-items:center;justify-content:center;flex-direction:column;margin:0 auto 24px;position:relative;}
+.quiz-score-ring b{font-family:var(--font-display);font-size:34px;color:var(--phosphor);line-height:1;}
+.quiz-score-ring span{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);margin-top:4px;}
+.quiz-result h3{font-size:22px;margin-bottom:10px;}
+.quiz-result p{color:var(--ink-dim);font-size:14.5px;max-width:420px;margin:0 auto 28px;line-height:1.7;}
+@media(max-width:600px){.quiz-card{padding:28px 22px;}}
+</style>
+
+<section class="section quiz-section" id="kuis">
+  <div class="container">
+    <div class="section-head center reveal" style="margin-left:auto;margin-right:auto;">
+      <div class="eyebrow">Uji Pemahaman</div>
+      <h2>Kuis Sistem Rangka</h2>
+      <p>Sepuluh soal singkat untuk menguji seberapa dalam pemahamanmu tentang materi di atas.</p>
+    </div>
+
+    <div class="quiz-card reveal">
+      <div id="quizActive">
+        <div class="quiz-progress-row">
+          <span id="quizProgressText">SOAL 1/10</span>
+          <div class="quiz-progress-bar"><i id="quizProgressBar"></i></div>
+          <span class="quiz-score">SKOR: <span id="quizScoreText">0</span></span>
+        </div>
+        <h3 class="quiz-question" id="quizQuestion">Memuat soal…</h3>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-feedback" id="quizFeedback" style="display:none"></div>
+        <div class="quiz-actions">
+          <button class="btn btn-primary" id="quizNextBtn" style="display:none" onclick="nextQuestion()">Soal Berikutnya →</button>
+        </div>
+      </div>
+      <div class="quiz-result" id="quizResult" style="display:none">
+        <div class="quiz-score-ring"><b id="finalScore">0/10</b><span>SKOR AKHIR</span></div>
+        <h3 id="resultTitle">Hasil Kuis</h3>
+        <p id="resultDesc">—</p>
+        <button class="btn btn-primary" onclick="restartQuiz()">Ulangi Kuis</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+footer{border-top:1px solid var(--line);padding:56px 0 40px;position:relative;z-index:1;}
+.footer-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;margin-bottom:28px;}
+.footer-logo{font-family:var(--font-mono);font-size:14px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.footer-logo span{color:var(--phosphor);}
+.footer-back{font-family:var(--font-mono);font-size:12px;color:var(--ink-dim);border:1px solid var(--line-strong);padding:8px 16px;border-radius:20px;}
+.footer-back:hover{color:var(--phosphor);border-color:var(--phosphor);}
+.footer-note{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-faint);line-height:1.8;max-width:640px;}
+</style>
+<footer>
+  <div class="container">
+    <div class="footer-row">
+      <div class="footer-logo"><span>●</span>OS·206 — Simulator Anatomi Digital</div>
+      <a href="#beranda" class="footer-back">↑ Kembali ke Atas</a>
+    </div>
+    <p class="footer-note">Dibuat untuk tujuan edukasi. Seluruh data anatomis pada halaman ini disusun berdasarkan referensi ilmu anatomi manusia umum dan disederhanakan agar mudah dipahami. Diagram rangka bersifat ilustratif, bukan gambar medis presisi klinis.</p>
+  </div>
+</footer>
+
+<style>
+a:focus-visible, button:focus-visible, input:focus-visible{outline:2px solid var(--phosphor);outline-offset:2px;}
+.nav-links a.active{color:var(--phosphor);background:var(--phosphor-dim);}
+.hero .eyebrow{animation:fadeUp .7s ease both;}
+.hero h1{animation:fadeUp .7s ease .08s both;}
+.hero-sub{animation:fadeUp .7s ease .16s both;}
+.hero-cta{animation:fadeUp .7s ease .24s both;}
+.stat-row{animation:fadeUp .7s ease .32s both;}
+.hero-viewport{animation:fadeUp .9s ease .2s both;}
+
+@media(max-width:860px){
+  .nav-links{
+    position:fixed;top:60px;left:0;right:0;background:rgba(10,13,19,0.97);
+    backdrop-filter:blur(14px);
+    flex-direction:column;align-items:stretch;gap:0;
+    max-width:none;max-height:0;overflow:hidden;border-bottom:1px solid var(--line);
+    transition:max-height .35s ease;opacity:1;margin:0;
+  }
+  .nav-links.mobile-open{max-height:460px;}
+  .nav-links a{padding:15px 32px;border-radius:0;border-bottom:1px solid var(--line);}
+  .navbar.nav-collapsed .nav-links{max-width:none;}
+  .hero-grid{grid-template-columns:1fr;}
+  .hero{padding-top:130px;}
+  .hero-viewport{max-width:360px;margin:0 auto;}
+}
+@media(max-width:480px){
+  .stat-row{grid-template-columns:repeat(2,1fr);}
+  .container{padding:0 20px;}
+  .section{padding:72px 0;}
+  .hero{padding-top:120px;padding-bottom:60px;}
+}
+</style>
+
+<script>
+// ============ DATA TULANG ============
+const boneData = {
+  "kranium": { nama:"Tulang Tengkorak (Kranium)", latin:"Cranium", kategori:"Tulang Pipih", jumlah:"8 tulang (menyatu)", lokasi:"Membungkus & melindungi otak di bagian kepala", fungsi:"Melindungi otak dari benturan serta menjadi tempat perlekatan otot wajah dan pengunyahan.", fakta:"Tersusun dari 8 tulang yang saling mengunci lewat sambungan bergerigi bernama sutura, membuatnya nyaris sekuat satu lempeng tulang utuh.", kat:"aksial" },
+  "mandibula": { nama:"Rahang Bawah", latin:"Mandibula", kategori:"Tulang Tak Beraturan", jumlah:"1 tulang", lokasi:"Bagian bawah wajah, menopang gigi bawah", fungsi:"Memungkinkan gerakan membuka-menutup mulut & mengunyah lewat sendi temporomandibular.", fakta:"Mandibula adalah satu-satunya tulang tengkorak yang bisa bergerak bebas, sekaligus tulang wajah yang paling keras.", kat:"aksial" },
+  "tulang-belakang": { nama:"Tulang Belakang (Kolom Vertebra)", latin:"Columna Vertebralis", kategori:"Tulang Tak Beraturan", jumlah:"26 ruas (dari 33 ruas awal yang sebagian menyatu)", lokasi:"Dari dasar tengkorak hingga panggul: 7 ruas leher, 12 ruas dada, 5 ruas pinggang, 1 sakrum, 1 tulang ekor", fungsi:"Menopang berat tubuh bagian atas, melindungi sumsum tulang belakang, dan memungkinkan tubuh membungkuk, memutar, serta menegakkan postur.", fakta:"Lengkung alami berbentuk huruf S berfungsi seperti pegas yang meredam guncangan setiap kali kita berjalan atau melompat.", kat:"aksial" },
+  "klavikula": { nama:"Tulang Selangka", latin:"Clavicula", kategori:"Tulang Panjang", jumlah:"2 tulang (kiri & kanan)", lokasi:"Menghubungkan tulang dada dengan tulang belikat di area bahu", fungsi:"Menjadi penyangga agar lengan tetap berada di posisi yang tepat dan menjauh dari batang tubuh.", fakta:"Tulang selangka adalah tulang yang paling sering patah di seluruh tubuh karena posisinya yang terpapar langsung saat terjatuh.", kat:"apendikular" },
+  "skapula": { nama:"Tulang Belikat", latin:"Scapula", kategori:"Tulang Pipih", jumlah:"2 tulang (kiri & kanan)", lokasi:"Punggung atas, di belakang tulang rusuk", fungsi:"Tempat perlekatan banyak otot bahu & lengan, serta membentuk rongga sendi (glenoid) untuk kepala tulang lengan atas.", fakta:"Berbentuk segitiga pipih dan dijuluki \"tulang sayap\" karena bisa menonjol keluar saat lengan digerakkan ke belakang.", kat:"apendikular" },
+  "sternum": { nama:"Tulang Dada", latin:"Sternum", kategori:"Tulang Pipih", jumlah:"1 tulang", lokasi:"Tengah dada depan; terdiri dari manubrium, korpus, dan taju pedang (xiphoid process)", fungsi:"Tempat perlekatan tulang rusuk lewat kartilago kosta serta melindungi organ di rongga dada.", fakta:"Sumsum tulang dada kadang dipakai untuk prosedur biopsi sumsum tulang karena lokasinya yang mudah dijangkau.", kat:"aksial" },
+  "rusuk": { nama:"Tulang Rusuk", latin:"Costae", kategori:"Tulang Pipih", jumlah:"24 tulang (12 pasang)", lokasi:"Melingkari rongga dada dari tulang belakang ke arah sternum", fungsi:"Membentuk sangkar pelindung bagi jantung dan paru-paru, serta membantu mekanisme pernapasan saat mengembang-mengempis.", fakta:"Dari 12 pasang, 7 pasang adalah rusuk sejati (langsung menempel sternum), 3 pasang rusuk palsu, dan 2 pasang rusuk melayang yang ujungnya bebas tanpa menyentuh sternum sama sekali.", kat:"aksial" },
+  "pelvis": { nama:"Tulang Panggul", latin:"Pelvis / Os Coxae", kategori:"Tulang Tak Beraturan", jumlah:"2 tulang pinggul, gabungan ilium, iskium & pubis", lokasi:"Menghubungkan tulang belakang dengan kedua tungkai kaki", fungsi:"Menopang berat tubuh bagian atas saat duduk & berdiri, serta melindungi organ reproduksi, kandung kemih, dan sebagian usus.", fakta:"Bentuk panggul wanita umumnya lebih lebar dan dangkal dibanding pria untuk mengakomodasi proses persalinan.", kat:"apendikular" },
+  "humerus": { nama:"Tulang Lengan Atas", latin:"Humerus", kategori:"Tulang Panjang", jumlah:"2 tulang (kiri & kanan)", lokasi:"Dari sendi bahu hingga sendi siku", fungsi:"Menjadi pengungkit utama gerakan lengan atas serta tempat perlekatan otot bisep & trisep.", fakta:"Ujung bawah humerus yang menyentuh saraf ulnaris dikenal awam sebagai \"tulang lucu\" (funny bone) karena sensasi kesemutan saat tersentuh.", kat:"apendikular" },
+  "radius": { nama:"Tulang Pengumpil", latin:"Radius", kategori:"Tulang Panjang", jumlah:"2 tulang (kiri & kanan)", lokasi:"Lengan bawah sisi ibu jari, dari siku ke pergelangan tangan", fungsi:"Memungkinkan gerakan memutar lengan bawah (pronasi-supinasi) seperti saat memutar gagang pintu.", fakta:"Radius berputar mengelilingi ulna saat telapak tangan dibalik dari menghadap atas ke bawah.", kat:"apendikular" },
+  "ulna": { nama:"Tulang Hasta", latin:"Ulna", kategori:"Tulang Panjang", jumlah:"2 tulang (kiri & kanan)", lokasi:"Lengan bawah sisi kelingking, dari siku ke pergelangan tangan", fungsi:"Membentuk sendi siku bersama humerus dan menjadi poros putaran bagi radius.", fakta:"Ujung atas ulna yang menonjol adalah bagian yang kita rasakan sebagai siku (olecranon).", kat:"apendikular" },
+  "tulang-tangan": { nama:"Tulang Pergelangan & Telapak Tangan", latin:"Carpal, Metacarpal & Phalanges", kategori:"Tulang Pendek & Panjang", jumlah:"27 tulang per tangan (8 karpal, 5 metakarpal, 14 falang)", lokasi:"Pergelangan hingga ujung jari tangan", fungsi:"Memberikan fleksibilitas & presisi tinggi untuk menggenggam, menulis, dan gerakan halus lainnya.", fakta:"Lebih dari seperempat total tulang tubuh manusia (52 dari 206) berada di kedua tangan.", kat:"apendikular" },
+  "femur": { nama:"Tulang Paha", latin:"Femur", kategori:"Tulang Panjang", jumlah:"2 tulang (kiri & kanan)", lokasi:"Dari sendi panggul hingga sendi lutut", fungsi:"Menopang seluruh berat tubuh bagian atas saat berdiri & berjalan, serta menjadi pengungkit gerak tungkai.", fakta:"Femur adalah tulang terpanjang, terberat, dan terkuat dalam tubuh manusia — mampu menahan beban tekanan hingga sekitar 30 kali berat badan.", kat:"apendikular" },
+  "patela": { nama:"Tempurung Lutut", latin:"Patella", kategori:"Tulang Sesamoid", jumlah:"2 tulang (kiri & kanan)", lokasi:"Bagian depan sendi lutut, tertanam dalam tendon otot paha depan", fungsi:"Melindungi sendi lutut serta meningkatkan efisiensi tarikan otot paha depan saat meluruskan tungkai.", fakta:"Patela adalah tulang sesamoid terbesar dalam tubuh manusia.", kat:"apendikular" },
+  "tibia": { nama:"Tulang Kering", latin:"Tibia", kategori:"Tulang Panjang", jumlah:"2 tulang (kiri & kanan)", lokasi:"Tungkai bawah sisi dalam, dari lutut ke pergelangan kaki", fungsi:"Menjadi penopang beban utama tungkai bawah saat berdiri & berjalan.", fakta:"Setelah femur, tibia adalah tulang terpanjang kedua dan penopang beban utama tungkai bawah — jauh lebih kokoh dibanding fibula di sampingnya.", kat:"apendikular" },
+  "fibula": { nama:"Tulang Betis", latin:"Fibula", kategori:"Tulang Panjang", jumlah:"2 tulang (kiri & kanan)", lokasi:"Tungkai bawah sisi luar, sejajar dengan tibia", fungsi:"Tempat perlekatan otot tungkai bawah & membantu menstabilkan sendi pergelangan kaki.", fakta:"Berbeda dari tibia, fibula menahan beban tubuh jauh lebih sedikit (sekitar 10-15%) sehingga sering dipakai sebagai bahan cangkok tulang dalam operasi rekonstruksi.", kat:"apendikular" },
+  "tulang-kaki": { nama:"Tulang Pergelangan & Telapak Kaki", latin:"Tarsal, Metatarsal & Phalanges", kategori:"Tulang Pendek & Panjang", jumlah:"26 tulang per kaki (7 tarsal, 5 metatarsal, 14 falang)", lokasi:"Pergelangan hingga ujung jari kaki", fungsi:"Menopang berat badan, menjaga keseimbangan, dan membentuk lengkungan kaki yang meredam guncangan saat berjalan/berlari.", fakta:"Tulang tumit (kalkaneus) adalah tulang tarsal terbesar dan menjadi titik tumpu utama saat kaki menapak tanah.", kat:"apendikular" }
+};
+
+const totalBones = Object.keys(boneData).length;
+let scannedBones = new Set();
+
+function selectBone(id){
+  const data = boneData[id];
+  if(!data) return;
+  document.querySelectorAll('.bone-hotspot').forEach(function(el){
+    el.classList.toggle('active', el.getAttribute('data-bone') === id);
+  });
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('specimenContent').style.display = 'block';
+  document.getElementById('specTag').textContent = 'SPESIMEN · ' + (data.kat === 'aksial' ? 'AKSIAL' : 'APENDIKULAR');
+  document.getElementById('specNama').textContent = data.nama;
+  document.getElementById('specLatin').textContent = data.latin;
+  document.getElementById('specKategori').textContent = data.kategori;
+  document.getElementById('specJumlah').textContent = data.jumlah;
+  document.getElementById('specLokasi').textContent = data.lokasi;
+  document.getElementById('specFungsi').textContent = data.fungsi;
+  document.getElementById('specFakta').textContent = data.fakta;
+  scannedBones.add(id);
+  document.getElementById('scanCount').textContent = scannedBones.size;
+  document.getElementById('scanBar').style.width = Math.round((scannedBones.size/totalBones)*100) + '%';
+  if(window.innerWidth < 980){
+    document.getElementById('specimenCard').scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+
+function pickSearchResult(id){
+  selectBone(id);
+  document.getElementById('boneSearch').value = boneData[id].nama;
+  document.getElementById('searchResults').classList.remove('show');
+}
+
+function handleSearch(query){
+  const box = document.getElementById('searchResults');
+  const q = query.trim().toLowerCase();
+  box.innerHTML = '';
+  if(q.length === 0){ box.classList.remove('show'); return; }
+  const matches = Object.entries(boneData).filter(function(entry){
+    const d = entry[1];
+    return d.nama.toLowerCase().indexOf(q) !== -1 || d.latin.toLowerCase().indexOf(q) !== -1;
+  });
+  if(matches.length === 0){
+    const div = document.createElement('div');
+    div.className = 'search-result-item';
+    div.textContent = 'Tidak ditemukan';
+    box.appendChild(div);
+  } else {
+    matches.slice(0,8).forEach(function(entry){
+      const id = entry[0], d = entry[1];
+      const div = document.createElement('div');
+      div.className = 'search-result-item';
+      div.textContent = d.nama;
+      div.addEventListener('click', function(){ pickSearchResult(id); });
+      box.appendChild(div);
+    });
+  }
+  box.classList.add('show');
+}
+
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.search-wrap')){
+    document.getElementById('searchResults').classList.remove('show');
+  }
+});
+
+function setFilter(kind){
+  document.querySelectorAll('.filter-chip').forEach(function(el){
+    el.classList.toggle('active', el.getAttribute('data-filter') === kind);
+  });
+  const svg = document.getElementById('simSvg');
+  svg.classList.remove('filter-aksial','filter-apendikular');
+  if(kind === 'aksial') svg.classList.add('filter-aksial');
+  if(kind === 'apendikular') svg.classList.add('filter-apendikular');
+}
+
+// ============ KUIS ============
+const quizData = [
+  { q:"Tulang manakah yang merupakan tulang terpanjang & terkuat dalam tubuh manusia?", options:["Humerus (tulang lengan atas)","Femur (tulang paha)","Tibia (tulang kering)","Radius (tulang pengumpil)"], correct:1, explain:"Femur adalah tulang terpanjang, terberat, dan terkuat di tubuh manusia, mampu menahan beban hingga sekitar 30 kali berat badan." },
+  { q:"Berapa total jumlah tulang pada tubuh manusia dewasa?", options:["186","206","226","246"], correct:1, explain:"Tubuh manusia dewasa memiliki 206 tulang, hasil penyatuan sebagian tulang bayi yang awalnya berjumlah sekitar 270." },
+  { q:"Tulang apa yang paling sering mengalami patah tulang di seluruh tubuh manusia?", options:["Tulang Selangka (Klavikula)","Tulang Paha (Femur)","Tulang Rusuk","Tulang Kering (Tibia)"], correct:0, explain:"Klavikula adalah tulang yang paling sering patah karena posisinya yang tipis dan terpapar langsung saat seseorang terjatuh." },
+  { q:"Fungsi utama sumsum tulang merah adalah…", options:["Menyimpan lemak","Memproduksi sel darah","Melindungi otak","Menghasilkan hormon"], correct:1, explain:"Sumsum tulang merah adalah tempat berlangsungnya hematopoiesis, yaitu produksi sel darah merah, sel darah putih, dan trombosit." },
+  { q:"Sendi bahu dan sendi panggul termasuk jenis sendi…", options:["Sendi Engsel","Sendi Peluru","Sendi Pelana","Sendi Putar"], correct:1, explain:"Sendi peluru (ball-and-socket) memungkinkan gerakan paling bebas ke segala arah, seperti pada bahu dan panggul." },
+  { q:"Tulang manakah yang merupakan tulang sesamoid terbesar dalam tubuh?", options:["Patela","Sternum","Skapula","Hyoid"], correct:0, explain:"Patela (tempurung lutut) adalah tulang sesamoid terbesar, tertanam dalam tendon otot paha depan." },
+  { q:"Berapa jumlah ruas tulang belakang bagian leher (servikal)?", options:["5","7","9","12"], correct:1, explain:"Ruas tulang belakang bagian leher (servikal) berjumlah 7 ruas pada hampir semua mamalia, termasuk manusia." },
+  { q:"Sel tulang yang bertugas menyerap/menghancurkan jaringan tulang lama disebut…", options:["Osteoblas","Osteosit","Osteoklas","Osteoprogenitor"], correct:2, explain:"Osteoklas adalah sel besar berinti banyak yang bertugas meresorpsi (menyerap) jaringan tulang lama sebagai bagian dari remodeling tulang." },
+  { q:"Rangka aksial terdiri dari tulang tengkorak, tulang belakang, tulang dada, dan…", options:["Tulang Rusuk","Tulang Lengan","Tulang Panggul","Tulang Kaki"], correct:0, explain:"Rangka aksial meliputi tengkorak, tulang belakang, tulang dada (sternum), dan tulang rusuk — seluruhnya membentuk sumbu utama tubuh." },
+  { q:"Kelainan tulang akibat penurunan kepadatan/massa tulang sehingga mudah rapuh disebut…", options:["Skoliosis","Rakitis","Osteoporosis","Artritis"], correct:2, explain:"Osteoporosis adalah penurunan kepadatan & massa tulang yang membuat tulang menjadi rapuh dan mudah patah." }
+];
+let currentQ = 0, quizScore = 0, answered = false;
+
+function renderQuestion(){
+  answered = false;
+  const item = quizData[currentQ];
+  document.getElementById('quizProgressText').textContent = 'SOAL ' + (currentQ+1) + '/' + quizData.length;
+  document.getElementById('quizProgressBar').style.width = ((currentQ/quizData.length)*100) + '%';
+  document.getElementById('quizScoreText').textContent = quizScore;
+  document.getElementById('quizQuestion').textContent = item.q;
+  const optWrap = document.getElementById('quizOptions');
+  optWrap.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  item.options.forEach(function(optText, idx){
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    const letterSpan = document.createElement('span');
+    letterSpan.className = 'opt-letter';
+    letterSpan.textContent = letters[idx];
+    const textSpan = document.createElement('span');
+    textSpan.textContent = optText;
+    btn.appendChild(letterSpan);
+    btn.appendChild(textSpan);
+    btn.addEventListener('click', function(){ selectAnswer(idx); });
+    optWrap.appendChild(btn);
+  });
+  document.getElementById('quizFeedback').style.display = 'none';
+  document.getElementById('quizFeedback').classList.remove('wrong');
+  document.getElementById('quizNextBtn').style.display = 'none';
+}
+
+function selectAnswer(idx){
+  if(answered) return;
+  answered = true;
+  const item = quizData[currentQ];
+  const buttons = document.querySelectorAll('#quizOptions .quiz-opt');
+  buttons.forEach(function(btn, i){
+    btn.disabled = true;
+    if(i === item.correct) btn.classList.add('correct');
+    else if(i === idx) btn.classList.add('incorrect');
+  });
+  const feedback = document.getElementById('quizFeedback');
+  feedback.style.display = 'block';
+  feedback.textContent = item.explain;
+  if(idx === item.correct){
+    quizScore++;
+    feedback.classList.remove('wrong');
+  } else {
+    feedback.classList.add('wrong');
+  }
+  document.getElementById('quizScoreText').textContent = quizScore;
+  document.getElementById('quizProgressBar').style.width = (((currentQ+1)/quizData.length)*100) + '%';
+  document.getElementById('quizNextBtn').style.display = 'inline-flex';
+}
+
+function nextQuestion(){
+  currentQ++;
+  if(currentQ >= quizData.length){ showResult(); } else { renderQuestion(); }
+}
+
+function showResult(){
+  document.getElementById('quizActive').style.display = 'none';
+  document.getElementById('quizResult').style.display = 'block';
+  document.getElementById('finalScore').textContent = quizScore + '/' + quizData.length;
+  const pct = quizScore/quizData.length;
+  let title, desc;
+  if(pct === 1){ title='Sempurna!'; desc='Seluruh jawabanmu benar. Pemahamanmu tentang sistem rangka manusia sangat solid.'; }
+  else if(pct >= 0.7){ title='Bagus Sekali!'; desc='Sebagian besar jawabanmu tepat. Sedikit lagi untuk menguasai materi ini sepenuhnya.'; }
+  else if(pct >= 0.4){ title='Lumayan!'; desc='Kamu sudah memahami dasar-dasarnya. Coba baca ulang materi di atas, lalu ulangi kuisnya.'; }
+  else { title='Terus Belajar!'; desc='Jangan menyerah — gulir ke atas untuk membaca ulang materinya, lalu coba lagi.'; }
+  document.getElementById('resultTitle').textContent = title;
+  document.getElementById('resultDesc').textContent = desc;
+}
+
+function restartQuiz(){
+  currentQ = 0; quizScore = 0;
+  document.getElementById('quizActive').style.display = 'block';
+  document.getElementById('quizResult').style.display = 'none';
+  renderQuestion();
+}
+renderQuestion();
+
+// ============ NAV MOBILE ============
+const navToggle = document.getElementById('navToggle');
+const navLinksEl = document.getElementById('navLinks');
+const navbarEl = document.querySelector('.navbar');
+navToggle.addEventListener('click', function(){
+  if(window.innerWidth <= 860){
+    navLinksEl.classList.toggle('mobile-open');
+  } else {
+    navbarEl.classList.toggle('nav-collapsed');
+  }
+});
+document.querySelectorAll('#navLinks a').forEach(function(a){
+  a.addEventListener('click', function(){ navLinksEl.classList.remove('mobile-open'); });
+});
+
+// ============ SCROLL REVEAL ============
+const revealEls = document.querySelectorAll('.reveal');
+const revealObserver = new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting){ entry.target.classList.add('visible'); revealObserver.unobserve(entry.target); }
+  });
+}, {threshold:0.12});
+revealEls.forEach(function(el){ revealObserver.observe(el); });
+
+// ============ STAT COUNT-UP ============
+function animateCount(el){
+  const target = parseInt(el.getAttribute('data-count'), 10);
+  const prefix = el.getAttribute('data-prefix') || '';
+  const duration = 1400;
+  const start = performance.now();
+  function tick(now){
+    const p = Math.min((now-start)/duration, 1);
+    const eased = 1 - Math.pow(1-p, 3);
+    el.textContent = prefix + Math.round(target*eased);
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const countEls = document.querySelectorAll('[data-count]');
+const countObserver = new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting){ animateCount(entry.target); countObserver.unobserve(entry.target); }
+  });
+}, {threshold:0.4});
+countEls.forEach(function(el){ countObserver.observe(el); });
+
+// ============ NAV ACTIVE ON SCROLL ============
+const sectionsEl = document.querySelectorAll('section[id]');
+const navAEl = document.querySelectorAll('.nav-links a');
+const navObserver = new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting){
+      const id = entry.target.getAttribute('id');
+      navAEl.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === '#'+id); });
+    }
+  });
+}, {rootMargin:'-40% 0px -55% 0px'});
+sectionsEl.forEach(function(s){ navObserver.observe(s); });
+</script>
+
+</body>
+</html>
