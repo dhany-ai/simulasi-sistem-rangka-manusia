@@ -27,24 +27,6 @@ Seluruhnya berjalan sebagai satu file HTML mandiri — tanpa framework, tanpa bu
 - 🎨 **Desain bertema "phosphor X-ray"** — latar gelap dengan aksen cyan & amber, tipografi Space Grotesk / Source Serif 4 / IBM Plex Mono, animasi scroll-reveal, dan navbar yang bisa dilipat.
 - 📱 **Responsif** — nyaman diakses dari desktop maupun mobile.
 
-## 🚀 Cara Menjalankan
-
-**Lokal**
-
-Clone atau unduh repo ini, lalu buka `index.html` langsung di browser. Tidak ada dependency, build step, atau server yang dibutuhkan.
-
-```bash
-git clone https://github.com/dhany-ai/simulasi-sistem-rangka-manusia.git
-cd simulasi-sistem-rangka-manusia
-```
-
-lalu buka `index.html` (klik dua kali, atau drag ke browser).
-
-**Live demo via GitHub Pages**
-
-1. Masuk ke **Settings → Pages** pada repo ini.
-2. Pada bagian **Branch**, pilih `main` dan folder `/ (root)`, lalu **Save**.
-3. Setelah beberapa menit, situs aktif di `https://dhany-ai.github.io/simulasi-sistem-rangka-manusia/`.
 
 ## 🤖 Dibuat dengan Claude
 
